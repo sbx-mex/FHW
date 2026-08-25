@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
       - name: Normalizar scripts Linux
         run: chmod +x scripts/*.sh
-      - name: Reconstruir datos y eliminar históricos obsoletos
+      - name: Sincronizar numerador, denominador y semanas
         run: python scripts/build_data.py
       - name: Validar antes de publicar
         run: python -m unittest discover -s tests -p 'test_*.py' -v
@@ -50,6 +50,19 @@ jobs:
         run: npm run pages
       - name: Auditar proyecto limpio
         run: python scripts/audit_project.py
+      - name: Resumir actualización segura
+        run: |
+          echo "## FHW · actualización validada" >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          data = json.loads(Path("public/data/fhw-dashboard.json").read_text(encoding="utf-8"))
+          state = data["meta"]["updateState"]
+          print(f"- Última semana publicada: S{state['latestReadyWeek']}")
+          print(f"- Semanas listas: {', '.join('S'+str(item) for item in state['readyWeeks'])}")
+          print(f"- Pendientes de sincronización: {', '.join('S'+str(item) for item in state['pendingWeeks']) or 'ninguna'}")
+          print("- Fórmula: promedio de FHW / Bebidas Lobby por tienda")
+          PY
       - name: Publicar sólo salidas vigentes
         run: |
           git add -A docs public/data
