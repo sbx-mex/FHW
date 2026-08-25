@@ -1,24 +1,20 @@
-# FHW v1.7 · Archivos para reemplazar
+# FHW v1.8 · Archivos para reemplazar
+
+Reemplaza únicamente estos archivos conservando sus rutas:
 
 - `app/dashboard.tsx`
-- `app/globals.css`
 - `app/xlsx-report.ts`
+- `app/layout.tsx`
+- `app/premium.css`
 - `scripts/build_data.py`
 - `scripts/audit_project.py`
-- `tests/test_pipeline.py`
-- `public/data/resources.json`
-- `public/data/fhw-dashboard.json`
-- `public/data/data-audit.json`
-- `public/data/experience-audit.json`
-- `public/sw.js`
 - `package.json`
 - `package-lock.json`
-- `input/Directorio_FHW.xlsx`
-- `input/FHW_Sem1_29.csv`
-- `input/Base_Año_Mes_Sem.xlsx`
+- `public/sw.js`
 - `AUDITORIA.md`
 - `README.md`
+- `ARCHIVOS_CORREGIDOS.md`
 
-Para GitHub Pages, reemplaza completa la carpeta `docs` incluida. Así no permanecen recursos compilados obsoletos.
+El workflow existente reconstruye automáticamente `public/data` y `docs`; no deben cargarse copias compiladas dentro de este paquete.
 
-Validación final: `npm run audit`.
+Validación final: `npm test && npm run lint && python3 scripts/audit_project.py`.

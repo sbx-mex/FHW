@@ -1,4 +1,4 @@
-# Auditoría ejecutiva FHW · v1.7
+# Auditoría ejecutiva FHW · v1.8
 
 ## Regla de negocio
 
@@ -10,7 +10,7 @@ DM, Región y Nacional se calculan con ponderación por volumen. La meta se cump
 
 El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio operativo y organiza 11 regiones.
 
-## Mejora visual v1.7
+## Mejora visual v1.8
 
 1. Navegación compacta `Región | DM | Tienda`.
 2. Ranking nacional completo de las 11 regiones; una Región abre sus DMs y un DM abre sus tiendas.

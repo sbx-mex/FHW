@@ -87,6 +87,6 @@ La solución combina la lectura ejecutiva y auditoría determinista de `Foco2026
 
 ## Créditos
 
-Diseñado por Jesus Alfredo Lopez Ramirez, Especialista de Sustentabilidad, y Enrique César Flores, Gerente de Distrito.
+Jesus Alfredo Lopez Ramirez & Enrique César Flores · Gerente de Distrito.
 
 La información publicada es propiedad de la marca y está prohibida su divulgación.

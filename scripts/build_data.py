@@ -537,7 +537,7 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.7.0",
+            "version": "1.8.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./mobile.css";
+import "./premium.css";
 
 export const metadata: Metadata = {
   title: "FHW · Cada Taza Cuenta",
