@@ -1,69 +1,69 @@
 {
   "status": "ok",
-  "checksTotal": 26,
-  "checksOk": 26,
+  "checksTotal": 29,
+  "checksOk": 29,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
     {
       "number": 1,
-      "name": "CI limpio",
+      "name": "Motor ejecutivo Python",
       "status": "ok",
-      "detail": "El lint sólo revisa código fuente, no archivos compilados."
+      "detail": "Python precalcula el corte semanal y sus bandas."
     },
     {
       "number": 2,
-      "name": "Jerarquía operativa",
+      "name": "Control de calidad Python",
       "status": "ok",
-      "detail": "Región, DM y tiendas se generan desde Directorio_FHW.xlsx."
+      "detail": "Valida filas, denominadores, duplicados y cobertura."
     },
     {
       "number": 3,
-      "name": "Ponderación exacta",
+      "name": "Primera vista ejecutiva",
       "status": "ok",
-      "detail": "DM y Región usan SUM(FHW) / SUM(Bebidas Lobby)."
+      "detail": "Resultado, movimiento y cobertura aparecen sin desplazamiento."
     },
     {
       "number": 4,
-      "name": "Filtro Región a DM",
+      "name": "Indicador visual de meta",
       "status": "ok",
-      "detail": "Elegir Región abre sus DMs y limpia el nivel inferior."
+      "detail": "Gauge dinámico contra el objetivo >10%."
     },
     {
       "number": 5,
-      "name": "Filtro DM a Tienda",
+      "name": "Distribución de acción",
       "status": "ok",
-      "detail": "Elegir DM abre sus tiendas."
+      "detail": "Separa sobre meta, cerca y enfoque."
     },
     {
       "number": 6,
-      "name": "Historia anual",
+      "name": "Comparación temporal",
       "status": "ok",
-      "detail": "Carga anual bajo demanda; el mes sigue siendo la vista rápida."
+      "detail": "Muestra avance o retroceso contra el corte anterior."
     },
     {
       "number": 7,
-      "name": "Gráfico dinámico legible",
+      "name": "Navegación enlazable",
       "status": "ok",
-      "detail": "Ajusta etiquetas y distingue ponderado de histórico directo."
+      "detail": "Filtros quedan en la URL para compartir la misma vista."
     },
     {
       "number": 8,
-      "name": "Detalle ordenable",
+      "name": "Exportación operativa",
       "status": "ok",
-      "detail": "Orden por desempeño, oportunidad o nombre."
+      "detail": "PDF ejecutivo y CSV del filtro activo."
     },
     {
       "number": 9,
-      "name": "Búsqueda ampliada",
+      "name": "Jerarquía dinámica",
       "status": "ok",
-      "detail": "Localiza tiendas por nombre o CeCo."
+      "detail": "Región muestra DMs; DM muestra tiendas."
     },
     {
       "number": 10,
-      "name": "Publicación y PWA",
+      "name": "Rendimiento y publicación",
       "status": "ok",
-      "detail": "GitHub Pages en /docs con rutas relativas y modo instalable."
+      "detail": "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos."
     }
   ],
   "errors": []

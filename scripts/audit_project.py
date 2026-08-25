@@ -52,6 +52,12 @@ def main() -> int:
         for store in dm_item.get("stores", [])
     }
     check("Hierarchy covers records", bool(hierarchy_cecos) and all(row["ceco"] in hierarchy_cecos for row in records), str(len(hierarchy_cecos)))
+    executive_weeks = payload["meta"].get("executiveWeeks", [])
+    quality = payload["meta"].get("quality", {})
+    latest_summary = next((item for item in executive_weeks if item["week"] == audit["latestCompleteWeek"]), {})
+    check("Python executive summary", bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["weightedRatio"]) < 1e-8)
+    check("Python quality gate", quality.get("status") == "ok" and quality.get("invalidSourceRows") == 0 and quality.get("zeroDenominatorRows") == 0)
+    check("Performance bands reconcile", bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1))
     for name, path in {
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
@@ -81,16 +87,16 @@ def main() -> int:
     improvements = []
     def improvement(number: int, name: str, condition: bool, detail: str):
         improvements.append({"number": number, "name": name, "status": "ok" if condition else "error", "detail": detail})
-    improvement(1, "CI limpio", "docs/**" in eslint_source and "docs" not in package["scripts"]["lint"], "El lint sólo revisa código fuente, no archivos compilados.")
-    improvement(2, "Jerarquía operativa", bool(hierarchy) and payload["meta"]["organization"]["stores"] == len(hierarchy_cecos), "Región, DM y tiendas se generan desde Directorio_FHW.xlsx.")
-    improvement(3, "Ponderación exacta", abs(latest_weighted - audit["latest"]["weightedRatio"]) < 1e-8, "DM y Región usan SUM(FHW) / SUM(Bebidas Lobby).")
-    improvement(4, "Filtro Región a DM", 'setView("dm")' in dashboard_source and 'setDm("Todos")' in dashboard_source, "Elegir Región abre sus DMs y limpia el nivel inferior.")
-    improvement(5, "Filtro DM a Tienda", 'setView("store")' in dashboard_source and 'function changeDm' in dashboard_source, "Elegir DM abre sus tiendas.")
-    improvement(6, "Historia anual", 'trendRange === "year"' in dashboard_source and "Object.keys(data.meta.historyFiles)" in dashboard_source, "Carga anual bajo demanda; el mes sigue siendo la vista rápida.")
-    improvement(7, "Gráfico dinámico legible", "labelEvery" in dashboard_source and "is-direct" in dashboard_source, "Ajusta etiquetas y distingue ponderado de histórico directo.")
-    improvement(8, "Detalle ordenable", "sortMode" in dashboard_source and "Mayor oportunidad" in dashboard_source, "Orden por desempeño, oportunidad o nombre.")
-    improvement(9, "Búsqueda ampliada", "row.ceco.includes(term)" in dashboard_source, "Localiza tiendas por nombre o CeCo.")
-    improvement(10, "Publicación y PWA", pages.is_file() and (ROOT / "public/sw.js").is_file() and '="/assets/' not in pages_html, "GitHub Pages en /docs con rutas relativas y modo instalable.")
+    improvement(1, "Motor ejecutivo Python", bool(executive_weeks) and bool(latest_summary), "Python precalcula el corte semanal y sus bandas.")
+    improvement(2, "Control de calidad Python", quality.get("status") == "ok", "Valida filas, denominadores, duplicados y cobertura.")
+    improvement(3, "Primera vista ejecutiva", "executive-hero" in dashboard_source and "score-gauge" in dashboard_source, "Resultado, movimiento y cobertura aparecen sin desplazamiento.")
+    improvement(4, "Indicador visual de meta", "function ScoreGauge" in dashboard_source, "Gauge dinámico contra el objetivo >10%.")
+    improvement(5, "Distribución de acción", "function Distribution" in dashboard_source and "nearTarget" in json.dumps(payload), "Separa sobre meta, cerca y enfoque.")
+    improvement(6, "Comparación temporal", "previous=trend.filter" in dashboard_source and "Movimiento" in dashboard_source, "Muestra avance o retroceso contra el corte anterior.")
+    improvement(7, "Navegación enlazable", "URLSearchParams" in dashboard_source and "history.replaceState" in dashboard_source, "Filtros quedan en la URL para compartir la misma vista.")
+    improvement(8, "Exportación operativa", "function exportCsv" in dashboard_source and "function exportPdf" in dashboard_source, "PDF ejecutivo y CSV del filtro activo.")
+    improvement(9, "Jerarquía dinámica", 'setView("dm")' in dashboard_source and 'setView("store")' in dashboard_source, "Región muestra DMs; DM muestra tiendas.")
+    improvement(10, "Rendimiento y publicación", pages.is_file() and (ROOT / "public/sw.js").is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos.")
     errors = [item for item in checks if item["status"] != "ok"]
     improvement_errors = [item for item in improvements if item["status"] != "ok"]
     report = {

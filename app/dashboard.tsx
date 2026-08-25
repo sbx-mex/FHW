@@ -4,325 +4,105 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type View = "store" | "dm" | "region";
-type Row = {
-  year: number; week: number; month: string; ceco: string; store: string;
-  dm: string; region: string; fhw: number | null; lobby: number | null;
-  ratio: number; source: string;
-};
-type HistoricalDm = { year: number; week: number; dm: string; ratio: number };
-type Organization = { regions: number; dms: number; stores: number; hierarchy: Array<{ name: string; dms: Array<{ name: string; stores: Array<{ ceco: string; name: string }> }> }> };
-type Coverage = { week: number; fhwStores: number; lobbyStores: number; matchedStores: number; publishedStores: number };
-type Payload = {
-  meta: { title: string; version: string; generatedAt: string; target: number; latestCompleteWeek: number; formula: string; weeks: number[]; months: string[]; monthWeeks: Record<string, number[]>; historyFiles: Record<string, string>; latestStores: number; organization: Organization; coverageByWeek: Coverage[] };
-  records: Row[];
-  historicalDm: HistoricalDm[];
-};
-type Inspiration = { eyebrow: string; title: string; message: string; closing: string; badge: string };
-type Result = { id: string; label: string; detail: string; ratio: number; fhw: number | null; lobby: number | null; stores: number; direct: boolean };
-type TrendPoint = { week: number; ratio: number; direct: boolean };
+type Row = { year:number; week:number; month:string; ceco:string; store:string; dm:string; region:string; fhw:number|null; lobby:number|null; ratio:number; source:string };
+type HistoricalDm = { year:number; week:number; dm:string; ratio:number };
+type Organization = { regions:number; dms:number; stores:number; hierarchy:Array<{name:string;dms:Array<{name:string;stores:Array<{ceco:string;name:string}>}>}> };
+type Coverage = { week:number; fhwStores:number; lobbyStores:number; matchedStores:number; publishedStores:number };
+type ExecutiveWeek = { week:number; month:string; fhw:number; lobby:number; ratio:number; stores:number; aboveTarget:number; nearTarget:number; opportunity:number };
+type Quality = { status:"ok"|"review"; sourceDuplicatesConsolidated:number; invalidSourceRows:number; zeroDenominatorRows:number; extremeRatiosFlagged:number; lowVolumeRowsFlagged:number; latestCoverage:number };
+type Payload = { meta:{ title:string; version:string; target:number; latestCompleteWeek:number; formula:string; months:string[]; monthWeeks:Record<string,number[]>; historyFiles:Record<string,string>; organization:Organization; coverageByWeek:Coverage[]; executiveWeeks:ExecutiveWeek[]; quality:Quality }; records:Row[]; historicalDm:HistoricalDm[] };
+type Inspiration = { eyebrow:string; title:string; message:string; closing:string };
+type Result = { id:string; label:string; detail:string; ratio:number; fhw:number|null; lobby:number|null; stores:number; direct:boolean };
+type TrendPoint = { week:number; ratio:number; direct:boolean };
 
-const pct = new Intl.NumberFormat("es-MX", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const int = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 0 });
+const pct = new Intl.NumberFormat("es-MX", { style:"percent", minimumFractionDigits:1, maximumFractionDigits:1 });
+const int = new Intl.NumberFormat("es-MX", { maximumFractionDigits:0 });
 
-function weighted(rows: Row[]) {
+function weighted(rows:Row[]) {
   const valid = rows.filter((row) => row.fhw !== null && row.lobby !== null && row.lobby > 0);
-  const fhw = valid.reduce((sum, row) => sum + (row.fhw ?? 0), 0);
-  const lobby = valid.reduce((sum, row) => sum + (row.lobby ?? 0), 0);
-  return { fhw, lobby, ratio: lobby ? fhw / lobby : null };
+  const fhw = valid.reduce((sum,row) => sum + (row.fhw ?? 0), 0);
+  const lobby = valid.reduce((sum,row) => sum + (row.lobby ?? 0), 0);
+  return { fhw, lobby, ratio:lobby ? fhw / lobby : null };
 }
 
-function groupLive(rows: Row[], view: View): Result[] {
-  const groups = new Map<string, Row[]>();
-  rows.forEach((row) => {
-    const id = view === "store" ? row.ceco : view === "dm" ? row.dm : row.region;
-    const group = groups.get(id);
-    if (group) group.push(row);
-    else groups.set(id, [row]);
-  });
-  return [...groups.entries()].map(([id, items]) => {
-    const score = weighted(items);
-    const first = items[0];
-    return {
-      id,
-      label: view === "store" ? first.store : id,
-      detail: view === "store" ? `${first.dm} · ${first.region}` : view === "dm" ? `${first.region} · ${new Set(items.map((item) => item.ceco)).size} tiendas` : `${new Set(items.map((item) => item.ceco)).size} tiendas`,
-      ratio: score.ratio ?? 0,
-      fhw: score.fhw,
-      lobby: score.lobby,
-      stores: new Set(items.map((item) => item.ceco)).size,
-      direct: false,
-    };
+function groupLive(rows:Row[], view:View):Result[] {
+  const groups = new Map<string,Row[]>();
+  rows.forEach((row) => { const id = view === "store" ? row.ceco : view === "dm" ? row.dm : row.region; groups.set(id,[...(groups.get(id) ?? []),row]); });
+  return [...groups.entries()].map(([id,items]) => {
+    const score = weighted(items), first = items[0], stores = new Set(items.map((item) => item.ceco)).size;
+    return { id, label:view === "store" ? first.store : id, detail:view === "store" ? `${first.dm} · ${first.region}` : view === "dm" ? `${first.region} · ${stores} tiendas` : `${stores} tiendas`, ratio:score.ratio ?? 0, fhw:score.fhw, lobby:score.lobby, stores, direct:false };
   });
 }
 
-function TrendChart({ points, target }: { points: TrendPoint[]; target: number }) {
-  if (!points.length) return <div className="empty-chart"><strong>Sin consolidado ponderable</strong><span>Ponderación exacta disponible desde S30.</span></div>;
-  const width = 760, height = 250, left = 46, right = 24, top = 24, bottom = 38;
-  const max = Math.max(target * 1.35, ...points.map((point) => point.ratio * 1.18), 0.02);
-  const x = (index: number) => points.length === 1 ? width / 2 : left + index * ((width - left - right) / (points.length - 1));
-  const y = (value: number) => top + (max - value) * ((height - top - bottom) / max);
-  const line = points.map((point, index) => `${x(index)},${y(point.ratio)}`).join(" ");
-  const labelEvery = points.length > 20 ? 4 : points.length > 10 ? 2 : 1;
-  return <svg className="trend-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Tendencia semanal de Cada Taza Cuenta">
-    {[0, .5, 1].map((fraction) => <g key={fraction}><line x1={left} x2={width - right} y1={y(max * fraction)} y2={y(max * fraction)} className="grid-line"/><text x={left - 9} y={y(max * fraction) + 4} textAnchor="end" className="axis-label">{pct.format(max * fraction)}</text></g>)}
-    <line x1={left} x2={width - right} y1={y(target)} y2={y(target)} className="target-line"/>
-    <text x={width - right} y={Math.max(12, y(target) - 7)} textAnchor="end" className="target-label">Objetivo &gt; {pct.format(target)}</text>
-    <polyline points={line} className="trend-line"/>
-    {points.map((point, index) => <g key={point.week}>
-      <circle cx={x(index)} cy={y(point.ratio)} r="5" className={`${point.ratio > target ? "point is-good" : "point"}${point.direct ? " is-direct" : ""}`}/>
-      {(index % labelEvery === 0 || index === points.length - 1) && <text x={x(index)} y={height - 14} textAnchor="middle" className="axis-label">S{point.week}</text>}
-      <title>{`Semana ${point.week}: ${pct.format(point.ratio)}`}</title>
-    </g>)}
-  </svg>;
+function ScoreGauge({value,target}:{value:number|null;target:number}) {
+  const progress = value === null ? 0 : Math.min(value / target, 1);
+  return <div className="score-gauge"><svg viewBox="0 0 120 120" role="img" aria-label={`Resultado ${value === null ? "sin dato" : pct.format(value)}`}><circle className="gauge-track" cx="60" cy="60" r="48"/><circle className="gauge-value" cx="60" cy="60" r="48" pathLength="1" strokeDasharray={`${progress} 1`}/></svg><div><strong>{value === null ? "—" : pct.format(value)}</strong><span>de &gt; {pct.format(target)}</span></div></div>;
 }
 
-function Bars({ items, target, onSelect }: { items: Result[]; target: number; onSelect: (item: Result) => void }) {
-  const max = Math.max(target, ...items.map((item) => item.ratio), .01);
-  return <div className="bar-list">
-    {items.map((item, index) => <button type="button" className="bar-row" key={item.id} onClick={() => onSelect(item)}>
-      <span className="bar-rank">{index + 1}</span>
-      <div className="bar-copy"><strong>{item.label}</strong><small>{item.detail}</small></div>
-      <div className="bar-track"><span className={item.ratio > target ? "bar-fill is-good" : "bar-fill"} style={{ width: `${Math.max(2, item.ratio / max * 100)}%` }}/></div>
-      <strong className={item.ratio > target ? "bar-value is-good" : "bar-value"}>{pct.format(item.ratio)}</strong>
-    </button>)}
-  </div>;
+function TrendChart({points,target}:{points:TrendPoint[];target:number}) {
+  if (!points.length) return <div className="empty-chart"><strong>Sin tendencia ponderable</strong><span>Elige otro alcance.</span></div>;
+  const width=760,height=235,left=46,right=24,top=20,bottom=36,max=Math.max(target*1.35,...points.map((point)=>point.ratio*1.15),.02);
+  const x=(index:number)=>points.length===1?width/2:left+index*((width-left-right)/(points.length-1));
+  const y=(value:number)=>top+(max-value)*((height-top-bottom)/max), labels=points.length>20?4:points.length>10?2:1;
+  return <svg className="trend-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Tendencia semanal">{[0,.5,1].map((f)=><g key={f}><line x1={left} x2={width-right} y1={y(max*f)} y2={y(max*f)} className="grid-line"/><text x={left-9} y={y(max*f)+4} textAnchor="end" className="axis-label">{pct.format(max*f)}</text></g>)}<line x1={left} x2={width-right} y1={y(target)} y2={y(target)} className="target-line"/><text x={width-right} y={Math.max(12,y(target)-7)} textAnchor="end" className="target-label">Objetivo &gt; {pct.format(target)}</text><polyline points={points.map((point,index)=>`${x(index)},${y(point.ratio)}`).join(" ")} className="trend-line"/>{points.map((point,index)=><g key={point.week}><circle cx={x(index)} cy={y(point.ratio)} r="5" className={`${point.ratio>target?"point is-good":"point"}${point.direct?" is-direct":""}`}/>{(index%labels===0||index===points.length-1)&&<text x={x(index)} y={height-12} textAnchor="middle" className="axis-label">S{point.week}</text>}<title>{`S${point.week}: ${pct.format(point.ratio)}`}</title></g>)}</svg>;
 }
 
-function Kpi({ label, value, note, tone = "default" }: { label: string; value: string; note: string; tone?: "default" | "good" | "alert" }) {
-  return <article className={`kpi ${tone}`}><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
+function Distribution({items,target}:{items:Result[];target:number}) {
+  const above=items.filter((item)=>item.ratio>target).length, near=items.filter((item)=>item.ratio>=.08&&item.ratio<=target).length, opportunity=Math.max(0,items.length-above-near), total=Math.max(items.length,1);
+  return <div className="distribution"><div className="distribution-bar"><i className="dist-good" style={{width:`${above/total*100}%`}}/><i className="dist-near" style={{width:`${near/total*100}%`}}/><i className="dist-low" style={{width:`${opportunity/total*100}%`}}/></div><div className="distribution-legend"><span><i className="dist-good"/><strong>{above}</strong> Sobre meta</span><span><i className="dist-near"/><strong>{near}</strong> Cerca</span><span><i className="dist-low"/><strong>{opportunity}</strong> Enfoque</span></div></div>;
 }
+
+function Bars({items,target,onSelect}:{items:Result[];target:number;onSelect:(item:Result)=>void}) {
+  const max=Math.max(target,...items.map((item)=>item.ratio),.01);
+  return <div className="bar-list">{items.map((item,index)=><button type="button" className="bar-row" key={item.id} onClick={()=>onSelect(item)}><span className="bar-rank">{index+1}</span><span className="bar-copy"><strong>{item.label}</strong><small>{item.detail}</small></span><span className="bar-track"><i className={item.ratio>target?"bar-fill is-good":"bar-fill"} style={{width:`${Math.max(2,item.ratio/max*100)}%`}}/></span><strong className={item.ratio>target?"bar-value is-good":"bar-value"}>{pct.format(item.ratio)}</strong></button>)}</div>;
+}
+
+function Kpi({label,value,note}:{label:string;value:string;note:string}) { return <article className="kpi"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>; }
 
 export default function Dashboard() {
-  const [data, setData] = useState<Payload | null>(null);
-  const [inspiration, setInspiration] = useState<Inspiration | null>(null);
-  const [error, setError] = useState("");
-  const [view, setView] = useState<View>("store");
-  const [month, setMonth] = useState("");
-  const [week, setWeek] = useState(0);
-  const [region, setRegion] = useState("Todas");
-  const [dm, setDm] = useState("Todos");
-  const [query, setQuery] = useState("");
-  const [rankingMode, setRankingMode] = useState<"top" | "bottom">("top");
-  const [trendRange, setTrendRange] = useState<"month" | "year">("month");
-  const [sortMode, setSortMode] = useState<"ratio-desc" | "ratio-asc" | "name">("ratio-desc");
-  const [historyRows, setHistoryRows] = useState<Row[]>([]);
-  const [historyDm, setHistoryDm] = useState<HistoricalDm[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState("");
-  const historyRequested = useRef(new Set<string>());
+  const [data,setData]=useState<Payload|null>(null), [inspiration,setInspiration]=useState<Inspiration|null>(null), [error,setError]=useState("");
+  const [view,setView]=useState<View>("store"), [month,setMonth]=useState(""), [week,setWeek]=useState(0), [region,setRegion]=useState("Todas"), [dm,setDm]=useState("Todos"), [query,setQuery]=useState("");
+  const [rankingMode,setRankingMode]=useState<"top"|"bottom">("bottom"), [trendRange,setTrendRange]=useState<"month"|"year">("month"), [sortMode,setSortMode]=useState<"ratio-desc"|"ratio-asc"|"name">("ratio-asc");
+  const [historyRows,setHistoryRows]=useState<Row[]>([]), [historyDm,setHistoryDm]=useState<HistoricalDm[]>([]), [historyLoading,setHistoryLoading]=useState(false), [historyError,setHistoryError]=useState("");
+  const historyRequested=useRef(new Set<string>()), urlReady=useRef(false);
 
-  useEffect(() => {
-    Promise.all([
-      fetch("data/fhw-dashboard.json").then((response) => { if (!response.ok) throw new Error("No se pudo leer la base"); return response.json(); }),
-      fetch("data/juntemonos-mas.json").then((response) => response.json()),
-    ]).then(([payload, message]) => {
-      setData(payload); setInspiration(message);
-      const latest = payload.meta.latestCompleteWeek;
-      const latestMonth = payload.records.find((row: Row) => row.week === latest)?.month ?? payload.meta.months.at(-1);
-      setMonth(latestMonth); setWeek(latest);
-    }).catch((reason) => setError(reason instanceof Error ? reason.message : "No se pudo cargar el tablero"));
-  }, []);
+  useEffect(()=>{ Promise.all([fetch("data/fhw-dashboard.json").then((r)=>{if(!r.ok)throw new Error("No se pudo leer la base");return r.json();}),fetch("data/juntemonos-mas.json").then((r)=>r.json())]).then(([payload,message]:[Payload,Inspiration])=>{
+    setData(payload);setInspiration(message);const params=new URLSearchParams(location.search),latest=payload.meta.latestCompleteWeek,latestMonth=payload.records.find((row)=>row.week===latest)?.month??payload.meta.months.at(-1)??"";
+    const requestedMonth=params.get("mes"), nextMonth=requestedMonth&&payload.meta.months.includes(requestedMonth)?requestedMonth:latestMonth, allowedWeeks=payload.meta.monthWeeks[nextMonth]??[], requestedWeek=Number(params.get("semana")), requestedView=params.get("vista");
+    setView(requestedView==="region"||requestedView==="dm"||requestedView==="store"?requestedView:"store");setMonth(nextMonth);setWeek(allowedWeeks.includes(requestedWeek)?requestedWeek:allowedWeeks.at(-1)??latest);setRegion(params.get("region")??"Todas");setDm(params.get("dm")??"Todos");setQuery(params.get("q")??"");setTrendRange(params.get("rango")==="year"?"year":"month");urlReady.current=true;
+  }).catch((reason)=>setError(reason instanceof Error?reason.message:"No se pudo cargar el tablero")); },[]);
+  useEffect(()=>{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>undefined);},[]);
+  useEffect(()=>{if(!data||!month)return;const targets=trendRange==="year"?Object.keys(data.meta.historyFiles):[month],pending=targets.filter((item)=>data.meta.historyFiles[item]&&!historyRequested.current.has(item));if(!pending.length)return;pending.forEach((item)=>historyRequested.current.add(item));queueMicrotask(()=>setHistoryLoading(true));Promise.all(pending.map(async(item)=>{const response=await fetch(data.meta.historyFiles[item]);if(!response.ok)throw new Error(`No se pudo leer ${item}`);return response.json() as Promise<{records:Row[];historicalDm:HistoricalDm[]}>;})).then((items)=>{setHistoryRows((current)=>[...current,...items.flatMap((item)=>item.records)]);setHistoryDm((current)=>[...current,...items.flatMap((item)=>item.historicalDm)]);setHistoryError("");}).catch((reason)=>{pending.forEach((item)=>historyRequested.current.delete(item));setHistoryError(reason instanceof Error?reason.message:"Histórico parcial");}).finally(()=>setHistoryLoading(false));},[data,month,trendRange]);
+  useEffect(()=>{if(!data||!urlReady.current)return;const params=new URLSearchParams();params.set("vista",view);params.set("mes",month);params.set("semana",String(week));if(region!=="Todas")params.set("region",region);if(dm!=="Todos")params.set("dm",dm);if(query)params.set("q",query);if(trendRange==="year")params.set("rango","year");history.replaceState(null,"",`${location.pathname}?${params}`);},[data,view,month,week,region,dm,query,trendRange]);
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => undefined);
-  }, []);
+  const baseRows=useMemo(()=>[...(data?.records??[]),...historyRows],[data,historyRows]), allHistoricalDm=useMemo(()=>[...(data?.historicalDm??[]),...historyDm],[data,historyDm]);
+  const regions=useMemo(()=>data?.meta.organization.hierarchy.map((item)=>item.name)??[],[data]);
+  const dms=useMemo(()=>{const hierarchy=data?.meta.organization.hierarchy??[],scoped=region==="Todas"?hierarchy:hierarchy.filter((item)=>item.name===region);return [...new Set(scoped.flatMap((item)=>item.dms.map((district)=>district.name)))].sort((a,b)=>a.localeCompare(b,"es"));},[data,region]);
+  const monthWeeks=useMemo(()=>data?.meta.monthWeeks[month]??[],[data,month]);
+  const hierarchyRows=useMemo(()=>{const term=query.trim().toLocaleLowerCase("es-MX");return baseRows.filter((row)=>(region==="Todas"||row.region===region)&&(dm==="Todos"||row.dm===dm)&&(!term||row.store.toLocaleLowerCase("es-MX").includes(term)||row.ceco.includes(term)));},[baseRows,region,dm,query]);
+  const scopeRows=hierarchyRows.filter((row)=>row.month===month), trendRows=trendRange==="year"?hierarchyRows:scopeRows, selectedRows=scopeRows.filter((row)=>row.week===week), hasLive=selectedRows.some((row)=>row.fhw!==null&&row.lobby!==null);
+  const results:Result[]=(()=>{if(!data)return[];if(hasLive)return groupLive(selectedRows.filter((row)=>row.fhw!==null&&row.lobby!==null),view);if(view==="store")return selectedRows.map((row)=>({id:row.ceco,label:row.store,detail:`${row.dm} · ${row.region}`,ratio:row.ratio,fhw:null,lobby:null,stores:1,direct:true}));if(view==="dm"){const allowed=new Set(selectedRows.map((row)=>row.dm));return allHistoricalDm.filter((item)=>item.week===week&&allowed.has(item.dm)).map((item)=>({id:item.dm,label:item.dm,detail:"Histórico directo",ratio:item.ratio,fhw:null,lobby:null,stores:0,direct:true}));}return[];})();
+  const score=hasLive?weighted(selectedRows):{fhw:0,lobby:0,ratio:null};
+  const sortedResults=[...results].sort((a,b)=>sortMode==="name"?a.label.localeCompare(b.label,"es"):sortMode==="ratio-desc"?b.ratio-a.ratio:a.ratio-b.ratio), ranking=[...results].sort((a,b)=>rankingMode==="top"?b.ratio-a.ratio:a.ratio-b.ratio).slice(0,6);
+  const coverage=data?.meta.coverageByWeek.find((item)=>item.week===week), atTarget=results.filter((item)=>item.ratio>(data?.meta.target??.1)).length;
+  const trend:TrendPoint[]=(()=>{if(!data)return[];const weeks=[...new Set(trendRows.map((row)=>row.week))].sort((a,b)=>a-b),oneStore=new Set(trendRows.map((row)=>row.ceco)).size===1;if(view==="store"&&oneStore)return weeks.map((item)=>{const row=trendRows.find((candidate)=>candidate.week===item)!;return{week:item,ratio:row.ratio,direct:row.fhw===null};});if(view==="dm"&&dm!=="Todos")return weeks.map((item)=>{const live=weighted(trendRows.filter((row)=>row.week===item));if(live.ratio!==null)return{week:item,ratio:live.ratio,direct:false};const direct=allHistoricalDm.find((candidate)=>candidate.week===item&&candidate.dm===dm);return direct?{week:item,ratio:direct.ratio,direct:true}:null;}).filter((item):item is TrendPoint=>item!==null);return weeks.map((item)=>{const live=weighted(trendRows.filter((row)=>row.week===item));return live.ratio===null?null:{week:item,ratio:live.ratio,direct:false};}).filter((item):item is TrendPoint=>item!==null);})();
+  const currentRatio=score.ratio??(results.length===1?results[0].ratio:null),previous=trend.filter((point)=>point.week<week).at(-1),delta=currentRatio!==null&&previous?currentRatio-previous.ratio:null,gap=currentRatio===null?null:(data?.meta.target??.1)-currentRatio,priority=[...results].sort((a,b)=>a.ratio-b.ratio)[0];
 
-  useEffect(() => {
-    if (!data || !month) return;
-    const targets = trendRange === "year" ? Object.keys(data.meta.historyFiles) : [month];
-    const pending = targets.filter((item) => data.meta.historyFiles[item] && !historyRequested.current.has(item));
-    if (!pending.length) return;
-    pending.forEach((item) => historyRequested.current.add(item));
-    queueMicrotask(() => setHistoryLoading(true));
-    Promise.all(pending.map(async (item) => {
-      const response = await fetch(data.meta.historyFiles[item]);
-      if (!response.ok) throw new Error(`No se pudo leer ${item}`);
-      return response.json() as Promise<{ records: Row[]; historicalDm: HistoricalDm[] }>;
-    })).then((histories) => {
-      setHistoryRows((current) => [...current, ...histories.flatMap((item) => item.records)]);
-      setHistoryDm((current) => [...current, ...histories.flatMap((item) => item.historicalDm)]);
-      setHistoryError("");
-    }).catch((reason) => {
-      pending.forEach((item) => historyRequested.current.delete(item));
-      setHistoryError(reason instanceof Error ? reason.message : "Histórico parcial");
-    }).finally(() => setHistoryLoading(false));
-  }, [data, month, trendRange]);
+  function changeMonth(value:string){const weeks=data?.meta.monthWeeks[value]??[];setMonth(value);setWeek(weeks.at(-1)??0);} function changeRegion(value:string){setRegion(value);setDm("Todos");setQuery("");if(value!=="Todas")setView("dm");} function changeDm(value:string){setDm(value);setQuery("");if(value!=="Todos")setView("store");} function resetScope(){setRegion("Todas");setDm("Todos");setQuery("");setView("region");}
+  function drillDown(item:Result){if(view==="region")changeRegion(item.id);else if(view==="dm")changeDm(item.id);else setQuery(item.label);document.querySelector(".executive-summary")?.scrollIntoView({behavior:"smooth"});}
+  function exportPdf(){const previous=document.title;document.title=`FHW_${view}_S${week}`;document.body.dataset.exporting="true";const restore=()=>{document.title=previous;delete document.body.dataset.exporting;};window.addEventListener("afterprint",restore,{once:true});requestAnimationFrame(()=>window.print());window.setTimeout(restore,4000);}
+  function exportCsv(){const escape=(value:string|number)=>`"${String(value).replaceAll('"','""')}"`,header=["Nivel","Nombre","Detalle","FHW","Bebidas Lobby","Cada Taza Cuenta","Estado"],lines=sortedResults.map((item)=>[view,item.label,item.detail,item.fhw??"",item.lobby??"",item.ratio,item.ratio>(data?.meta.target??.1)?"Sobre meta":"Oportunidad"].map(escape).join(","));const blob=new Blob(["\ufeff",header.join(","),"\n",lines.join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=`FHW_${view}_S${week}.csv`;link.click();URL.revokeObjectURL(url);}
 
-  const baseRows = useMemo(() => [...(data?.records ?? []), ...historyRows], [data, historyRows]);
-  const allHistoricalDm = useMemo(() => [...(data?.historicalDm ?? []), ...historyDm], [data, historyDm]);
-  const regions = useMemo(() => data?.meta.organization.hierarchy.map((item) => item.name) ?? [], [data]);
-  const dms = useMemo(() => {
-    const hierarchy = data?.meta.organization.hierarchy ?? [];
-    const scoped = region === "Todas" ? hierarchy : hierarchy.filter((item) => item.name === region);
-    return [...new Set(scoped.flatMap((item) => item.dms.map((district) => district.name)))].sort((a, b) => a.localeCompare(b, "es"));
-  }, [data, region]);
-  const monthWeeks = useMemo(() => data?.meta.monthWeeks[month] ?? [], [data, month]);
+  if(error)return <main className="state-screen"><img src="assets/logo-cada-taza-cuenta.webp" alt="FHW"/><h1>No pudimos abrir el tablero</h1><p>{error}</p><button onClick={()=>location.reload()}>Reintentar</button></main>;
+  if(!data)return <main className="state-screen"><div className="loader"/><h1>Preparando Cada Taza Cuenta</h1><p>Validando el corte…</p></main>;
 
-  function changeMonth(value: string) {
-    const weeks = data?.meta.monthWeeks[value] ?? [];
-    setMonth(value);
-    setWeek(weeks.at(-1) ?? 0);
-  }
-
-  function changeRegion(value: string) {
-    setRegion(value);
-    setDm("Todos");
-    setQuery("");
-    if (value !== "Todas") setView("dm");
-  }
-
-  function changeDm(value: string) {
-    setDm(value);
-    setQuery("");
-    if (value !== "Todos") setView("store");
-  }
-
-  function resetScope() {
-    setRegion("Todas");
-    setDm("Todos");
-    setQuery("");
-    setView("region");
-  }
-
-  function drillDown(item: Result) {
-    if (view === "region") changeRegion(item.id);
-    else if (view === "dm") changeDm(item.id);
-    else setQuery(item.label);
-    document.querySelector(".kpi-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function exportPdf() {
-    const previousTitle = document.title;
-    document.title = `FHW_${view}_S${week}`;
-    document.body.dataset.exporting = "true";
-    const restore = () => { document.title = previousTitle; delete document.body.dataset.exporting; };
-    window.addEventListener("afterprint", restore, { once: true });
-    requestAnimationFrame(() => window.print());
-    window.setTimeout(restore, 4000);
-  }
-
-  const hierarchyRows = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase("es-MX");
-    return baseRows.filter((row) =>
-      (region === "Todas" || row.region === region) && (dm === "Todos" || row.dm === dm)
-      && (!term || row.store.toLocaleLowerCase("es-MX").includes(term) || row.ceco.includes(term))
-    );
-  }, [baseRows, region, dm, query]);
-  const scopeRows = useMemo(() => hierarchyRows.filter((row) => row.month === month), [hierarchyRows, month]);
-  const trendRows = trendRange === "year" ? hierarchyRows : scopeRows;
-  const selectedRows = useMemo(() => scopeRows.filter((row) => row.week === week), [scopeRows, week]);
-  const hasLive = selectedRows.some((row) => row.fhw !== null && row.lobby !== null);
-
-  const results = useMemo<Result[]>(() => {
-    if (!data) return [];
-    if (hasLive) return groupLive(selectedRows.filter((row) => row.fhw !== null && row.lobby !== null), view);
-    if (view === "store") return selectedRows.map((row) => ({ id: row.ceco, label: row.store, detail: `${row.dm} · ${row.region}`, ratio: row.ratio, fhw: null, lobby: null, stores: 1, direct: true }));
-    if (view === "dm") {
-      const allowed = new Set(selectedRows.map((row) => row.dm));
-      return allHistoricalDm.filter((item) => item.week === week && allowed.has(item.dm)).map((item) => ({ id: item.dm, label: item.dm, detail: "Histórico directo", ratio: item.ratio, fhw: null, lobby: null, stores: 0, direct: true }));
-    }
-    return [];
-  }, [data, hasLive, selectedRows, view, week, allHistoricalDm]);
-
-  const ranking = useMemo(() => [...results].sort((a, b) => rankingMode === "top" ? b.ratio - a.ratio : a.ratio - b.ratio).slice(0, 7), [results, rankingMode]);
-  const sortedResults = useMemo(() => [...results].sort((a, b) => {
-    if (sortMode === "name") return a.label.localeCompare(b.label, "es");
-    return sortMode === "ratio-desc" ? b.ratio - a.ratio : a.ratio - b.ratio;
-  }), [results, sortMode]);
-  const score = useMemo(() => hasLive ? weighted(selectedRows) : { fhw: 0, lobby: 0, ratio: null }, [hasLive, selectedRows]);
-  const atTarget = results.filter((item) => item.ratio > (data?.meta.target ?? .1)).length;
-  const coverage = data?.meta.coverageByWeek.find((item) => item.week === week);
-
-  const trend = useMemo<TrendPoint[]>(() => {
-    if (!data) return [];
-    const weeks = [...new Set(trendRows.map((row) => row.week))].sort((a, b) => a - b);
-    const oneStore = new Set(trendRows.map((row) => row.ceco)).size === 1;
-    if (view === "store" && oneStore) return weeks.map((item) => {
-      const row = trendRows.find((candidate) => candidate.week === item)!;
-      return { week: item, ratio: row.ratio, direct: row.fhw === null };
-    });
-    if (view === "dm" && dm !== "Todos") return weeks.map((item) => {
-      const live = weighted(trendRows.filter((row) => row.week === item));
-      if (live.ratio !== null) return { week: item, ratio: live.ratio, direct: false };
-      const direct = allHistoricalDm.find((candidate) => candidate.week === item && candidate.dm === dm);
-      return direct ? { week: item, ratio: direct.ratio, direct: true } : null;
-    }).filter((item): item is TrendPoint => item !== null);
-    return weeks.map((item) => {
-      const live = weighted(trendRows.filter((row) => row.week === item));
-      return live.ratio === null ? null : { week: item, ratio: live.ratio, direct: false };
-    }).filter((item): item is TrendPoint => item !== null);
-  }, [data, trendRows, view, dm, allHistoricalDm]);
-
-  const previous = trend.filter((point) => point.week < week).at(-1);
-  const currentRatio = score.ratio ?? (results.length === 1 ? results[0].ratio : null);
-  const delta = currentRatio !== null && previous ? currentRatio - previous.ratio : null;
-  const gap = currentRatio === null ? null : Math.max(0, (data?.meta.target ?? .1) - currentRatio);
-  const leader = [...results].sort((a, b) => b.ratio - a.ratio)[0];
-  const story = historyLoading ? "Cargando el histórico…" : currentRatio === null
-    ? "Histórico disponible por tienda y distrito."
-    : currentRatio > (data?.meta.target ?? .1)
-      ? `El alcance supera la meta por ${pct.format(currentRatio - (data?.meta.target ?? .1))}. ${leader ? `${leader.label} lidera con ${pct.format(leader.ratio)}.` : ""}`
-      : `La brecha es ${pct.format(gap ?? 0)}. ${leader ? `${leader.label} marca la referencia con ${pct.format(leader.ratio)}.` : ""}`;
-
-  if (error) return <main className="state-screen"><img src="assets/logo-cada-taza-cuenta.webp" alt="FHW"/><h1>No pudimos abrir el tablero</h1><p>{error}</p><button onClick={() => location.reload()}>Reintentar</button></main>;
-  if (!data) return <main className="state-screen"><div className="loader"/><h1>Preparando Cada Taza Cuenta</h1><p>Validando el último corte disponible…</p></main>;
-
-  return <div className="app-shell">
-    <header className="topbar">
-      <a className="brand" href="#inicio" aria-label="Inicio FHW"><img src="assets/logo-cada-taza-cuenta.webp" alt="Logotipo FHW"/><span><strong>FHW</strong><small>Cada Taza Cuenta</small></span></a>
-      <div className="header-actions"><span className="status-dot">Validado · S{data.meta.latestCompleteWeek}</span><button className="button ghost" onClick={exportPdf}>Descargar PDF</button></div>
-    </header>
-
-    <main id="inicio">
-      <section className="hero">
-        <div className="hero-copy"><p className="eyebrow">VAJILLA · BEBIDAS EN TIENDA</p><h1>Más experiencias.<br/>Menos desechables.</h1><p>Avance de bebidas Lobby servidas con vajilla reutilizable.</p></div>
-        <div className="hero-goal"><span>Objetivo</span><strong>&gt;10%</strong><small>FHW / Bebidas Lobby</small></div>
-      </section>
-
-      <section className="toolbar" aria-label="Filtros del tablero">
-        <div className="view-tabs" role="tablist" aria-label="Nivel de análisis">
-          {(["store", "dm", "region"] as View[]).map((item) => <button key={item} role="tab" aria-selected={view === item} className={view === item ? "active" : ""} onClick={() => setView(item)}>{item === "store" ? "Tienda" : item === "dm" ? "DM" : "Región"}</button>)}
-        </div>
-        <div className="filters">
-          <label>Mes<select value={month} onChange={(event) => changeMonth(event.target.value)}>{data.meta.months.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Semana<select value={week} onChange={(event) => setWeek(Number(event.target.value))}>{monthWeeks.map((item) => <option key={item} value={item}>S{item}</option>)}</select></label>
-          <label>Región<select value={region} onChange={(event) => changeRegion(event.target.value)}><option>Todas</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>DM<select value={dm} onChange={(event) => changeDm(event.target.value)}><option>Todos</option>{dms.map((item) => <option key={item}>{item}</option>)}</select></label>
-          {view === "store" && <label className="search-label">Tienda o CeCo<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nombre o número" inputMode="search"/></label>}
-        </div>
-        <nav className="scope-nav" aria-label="Alcance activo">
-          <button onClick={resetScope}>Nacional</button><span>›</span>
-          <button onClick={() => { setDm("Todos"); setView("dm"); }}>{region === "Todas" ? `${data.meta.organization.regions} regiones` : region}</button><span>›</span>
-          <button onClick={() => setView("store")}>{dm === "Todos" ? `${dms.length} DMs` : dm}</button>
-          {(region !== "Todas" || dm !== "Todos" || query) && <button className="scope-clear" onClick={resetScope}>Restablecer</button>}
-        </nav>
-      </section>
-
-      <section className="kpi-grid">
-        <Kpi label="Cada Taza Cuenta" value={currentRatio === null ? "—" : pct.format(currentRatio)} note={currentRatio === null ? "Sin base ponderable" : `S${week} · ${score.lobby ? int.format(score.lobby) + " bebidas" : "dato directo"}`} tone={currentRatio !== null && currentRatio > data.meta.target ? "good" : "alert"}/>
-        <Kpi label="FHW" value={score.fhw ? int.format(score.fhw) : "—"} note="Vajilla reutilizable"/>
-        <Kpi label="Bebidas Lobby" value={score.lobby ? int.format(score.lobby) : "—"} note="Base de ponderación"/>
-        <Kpi label="Sobre objetivo" value={`${atTarget} de ${results.length}`} note={coverage ? `${coverage.publishedStores} tiendas con cruce` : view === "store" ? "tiendas" : view === "dm" ? "distritos" : "regiones"} tone={atTarget ? "good" : "default"}/>
-      </section>
-
-      <section className="story-card">
-        <div><p className="eyebrow">LECTURA EJECUTIVA</p><h2>{delta === null ? "Corte listo para decidir" : delta >= 0 ? `Avance de ${pct.format(delta)}` : `Retroceso de ${pct.format(Math.abs(delta))}`}</h2><p>{story}</p></div>
-        <div className="story-number"><span>Brecha</span><strong>{gap === null ? "—" : pct.format(gap)}</strong><small>vs objetivo</small></div>
-      </section>
-
-      <section className="dashboard-grid">
-        <article className="panel trend-panel"><div className="panel-head"><div><p className="eyebrow">TENDENCIA</p><h2>{trendRange === "year" ? "Historia 2026" : `Ritmo de ${month}`}</h2></div><div className="panel-actions"><span className="formula-chip">Σ FHW / Σ Lobby</span><div className="toggle"><button className={trendRange === "month" ? "active" : ""} onClick={() => setTrendRange("month")}>Mes</button><button className={trendRange === "year" ? "active" : ""} onClick={() => setTrendRange("year")}>Año</button></div></div></div><TrendChart points={trend} target={data.meta.target}/>{historyError && <small className="trend-status">{historyError}</small>}<div className="trend-legend"><span><i className="legend-live"/>Ponderado</span><span><i className="legend-direct"/>Histórico directo</span></div></article>
-        <article className="panel ranking-panel"><div className="panel-head"><div><p className="eyebrow">ENFOQUE</p><h2>{rankingMode === "top" ? "Top desempeño" : "Bottom oportunidad"}</h2></div><div className="toggle"><button className={rankingMode === "top" ? "active" : ""} onClick={() => setRankingMode("top")}>Top</button><button className={rankingMode === "bottom" ? "active" : ""} onClick={() => setRankingMode("bottom")}>Bottom</button></div></div>{ranking.length ? <Bars items={ranking} target={data.meta.target} onSelect={drillDown}/> : <div className="empty-chart"><strong>Sin datos</strong><span>Cambia el corte.</span></div>}</article>
-      </section>
-
-      <section className="panel table-panel"><div className="panel-head"><div><p className="eyebrow">DETALLE</p><h2>{view === "store" ? "Tiendas" : view === "dm" ? "Distritos" : "Regiones"} · Semana {week}</h2></div><div className="table-actions"><span>{Math.min(results.length, 100)} de {results.length}</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)} aria-label="Ordenar detalle"><option value="ratio-desc">Mayor desempeño</option><option value="ratio-asc">Mayor oportunidad</option><option value="name">Nombre A–Z</option></select></div></div><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Alcance</th><th>FHW</th><th>Bebidas Lobby</th><th>Cada Taza Cuenta</th><th>Estado</th></tr></thead><tbody>{sortedResults.slice(0, 100).map((item) => <tr key={item.id}><td><strong>{item.label}</strong><small>{item.detail}</small></td><td>{item.stores || "Directo"}</td><td>{item.fhw === null ? "—" : int.format(item.fhw)}</td><td>{item.lobby === null ? "—" : int.format(item.lobby)}</td><td><strong>{pct.format(item.ratio)}</strong></td><td><span className={item.ratio > data.meta.target ? "status good" : "status opportunity"}>{item.ratio > data.meta.target ? "Sobre meta" : "Oportunidad"}</span></td></tr>)}</tbody></table></div></section>
-
-      <section className="resource-grid">
-        <article className="toolkit-card"><div><p className="eyebrow">KIT DE ACCIÓN</p><h2>Toolkit Cada Taza Cuenta</h2><p>Ideas listas para llevar a tienda.</p></div><a className="button solid" href="Toolkit_Cada_Taza_Cuenta.pdf" download>Descargar toolkit</a></article>
-        {inspiration && <article className="inspiration-card"><img src="assets/juntemonos-mas.png" alt="Juntémonos más"/><div><p className="eyebrow">{inspiration.eyebrow}</p><h2>{inspiration.title}</h2><p>{inspiration.message}</p><small>{inspiration.closing}</small></div></article>}
-      </section>
-    </main>
-
-    <footer><div><strong>FHW · Cada Taza Cuenta</strong><span>Diseñado por Jesus Alfredo Lopez Ramirez · Especialista de Sustentabilidad &amp; Enrique César Flores · Gerente de Distrito</span></div><div><span>La información publicada es propiedad de la marca y está prohibida su divulgación.</span><a href="https://wa.me/message/ENKDSAHYHIGAN1" target="_blank" rel="noreferrer">Comentarios y/o Sugerencias</a></div></footer>
-  </div>;
+  return <div className="app-shell"><header className="topbar"><a className="brand" href="#inicio"><img src="assets/logo-cada-taza-cuenta.webp" alt="FHW"/><span><strong>FHW</strong><small>Cada Taza Cuenta</small></span></a><div className="header-actions"><span className="status-dot">{data.meta.quality.status==="ok"?"Datos validados":"Revisión requerida"} · S{data.meta.latestCompleteWeek}</span><button className="button ghost" onClick={exportPdf}>PDF</button></div></header>
+    <main id="inicio"><section className="executive-hero"><div><p className="eyebrow">VAJILLA · BEBIDAS EN TIENDA</p><h1>Cada Taza Cuenta</h1><p>Una lectura breve para decidir dónde acelerar.</p></div><ScoreGauge value={currentRatio} target={data.meta.target}/><div className="hero-facts"><span><small>Movimiento</small><strong className={delta!==null&&delta>=0?"positive":""}>{delta===null?"—":`${delta>=0?"+":""}${pct.format(delta)}`}</strong></span><span><small>Cobertura</small><strong>{coverage?pct.format(coverage.publishedStores/data.meta.organization.stores):"—"}</strong></span><span><small>Semana</small><strong>S{week}</strong></span></div></section>
+      <section className="toolbar" aria-label="Filtros"><div className="view-tabs" role="tablist">{(["store","dm","region"] as View[]).map((item)=><button key={item} role="tab" aria-selected={view===item} className={view===item?"active":""} onClick={()=>setView(item)}>{item==="store"?"Tienda":item==="dm"?"DM":"Región"}</button>)}</div><div className="filters"><label>Mes<select value={month} onChange={(e)=>changeMonth(e.target.value)}>{data.meta.months.map((item)=><option key={item}>{item}</option>)}</select></label><label>Semana<select value={week} onChange={(e)=>setWeek(Number(e.target.value))}>{monthWeeks.map((item)=><option key={item} value={item}>S{item}</option>)}</select></label><label>Región<select value={region} onChange={(e)=>changeRegion(e.target.value)}><option>Todas</option>{regions.map((item)=><option key={item}>{item}</option>)}</select></label><label>DM<select value={dm} onChange={(e)=>changeDm(e.target.value)}><option>Todos</option>{dms.map((item)=><option key={item}>{item}</option>)}</select></label>{view==="store"&&<label className="search-label">Tienda o CeCo<input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Buscar"/></label>}</div><nav className="scope-nav" aria-label="Alcance"><button onClick={resetScope}>Nacional</button><span>›</span><button onClick={()=>{setDm("Todos");setView("dm");}}>{region==="Todas"?`${data.meta.organization.regions} regiones`:region}</button><span>›</span><button onClick={()=>setView("store")}>{dm==="Todos"?`${dms.length} DMs`:dm}</button>{(region!=="Todas"||dm!=="Todos"||query)&&<button className="scope-clear" onClick={resetScope}>Limpiar</button>}</nav></section>
+      <section className="executive-summary"><Kpi label="FHW" value={score.fhw?int.format(score.fhw):"—"} note="Vajilla reutilizable"/><Kpi label="Bebidas Lobby" value={score.lobby?int.format(score.lobby):"—"} note="Base ponderada"/><Kpi label="Sobre objetivo" value={`${atTarget} / ${results.length}`} note="resultado > 10%"/><article className="decision-card"><span>PRIORIDAD</span><strong>{priority?.label??"Sin dato"}</strong><small>{priority?pct.format(priority.ratio):"Cambia el corte"}</small></article></section>
+      <section className="decision-strip"><span><small>Ahora</small><strong>{currentRatio===null?"Sin ponderación":currentRatio>data.meta.target?"Objetivo superado":"Oportunidad activa"}</strong></span><span><small>Brecha</small><strong>{gap===null?"—":gap<=0?`+${pct.format(Math.abs(gap))}`:pct.format(gap)}</strong></span><span><small>Calidad</small><strong>{data.meta.quality.status==="ok"?"Cruce validado":"Revisar fuente"}</strong></span></section>
+      <section className="dashboard-grid"><article className="panel trend-panel"><div className="panel-head"><div><p className="eyebrow">TENDENCIA</p><h2>{trendRange==="year"?"Historia 2026":`Ritmo de ${month}`}</h2></div><div className="toggle"><button className={trendRange==="month"?"active":""} onClick={()=>setTrendRange("month")}>Mes</button><button className={trendRange==="year"?"active":""} onClick={()=>setTrendRange("year")}>Año</button></div></div><TrendChart points={trend} target={data.meta.target}/>{historyLoading&&<small className="trend-status">Cargando historia…</small>}{historyError&&<small className="trend-status">{historyError}</small>}<div className="trend-legend"><span><i/>Ponderado</span><span><i className="legend-direct"/>Histórico directo</span></div></article><article className="panel ranking-panel"><div className="panel-head"><div><p className="eyebrow">DISTRIBUCIÓN</p><h2>Mapa de acción</h2></div><div className="toggle"><button className={rankingMode==="top"?"active":""} onClick={()=>setRankingMode("top")}>Top</button><button className={rankingMode==="bottom"?"active":""} onClick={()=>setRankingMode("bottom")}>Bottom</button></div></div><Distribution items={results} target={data.meta.target}/><h3>{rankingMode==="top"?"Referencias":"Oportunidades"}</h3>{ranking.length?<Bars items={ranking} target={data.meta.target} onSelect={drillDown}/>:<div className="empty-chart"><strong>Sin datos</strong><span>Cambia el corte.</span></div>}</article></section>
+      <section className="panel table-panel"><div className="panel-head"><div><p className="eyebrow">DETALLE</p><h2>{view==="store"?"Tiendas":view==="dm"?"Distritos":"Regiones"} · S{week}</h2></div><div className="table-actions"><button className="button outline" onClick={exportCsv}>CSV</button><span>{Math.min(results.length,100)} de {results.length}</span><select value={sortMode} onChange={(e)=>setSortMode(e.target.value as typeof sortMode)}><option value="ratio-asc">Mayor oportunidad</option><option value="ratio-desc">Mayor desempeño</option><option value="name">Nombre A–Z</option></select></div></div><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Alcance</th><th>FHW</th><th>Bebidas Lobby</th><th>Cada Taza Cuenta</th><th>Estado</th></tr></thead><tbody>{sortedResults.slice(0,100).map((item)=><tr key={item.id}><td><strong>{item.label}</strong><small>{item.detail}</small></td><td>{item.stores||"Directo"}</td><td>{item.fhw===null?"—":int.format(item.fhw)}</td><td>{item.lobby===null?"—":int.format(item.lobby)}</td><td><strong>{pct.format(item.ratio)}</strong></td><td><span className={item.ratio>data.meta.target?"status good":"status opportunity"}>{item.ratio>data.meta.target?"Sobre meta":"Oportunidad"}</span></td></tr>)}</tbody></table></div></section>
+      <section className="resource-grid"><article className="toolkit-card"><div><p className="eyebrow">KIT DE ACCIÓN</p><h2>Toolkit Cada Taza Cuenta</h2></div><a className="button solid" href="Toolkit_Cada_Taza_Cuenta.pdf" download>Descargar</a></article>{inspiration&&<article className="inspiration-card"><img src="assets/juntemonos-mas.png" alt="Juntémonos más"/><div><p className="eyebrow">{inspiration.eyebrow}</p><h2>{inspiration.title}</h2><p>{inspiration.message}</p><small>{inspiration.closing}</small></div></article>}</section>
+    </main><footer><div><strong>FHW · Cada Taza Cuenta</strong><span>Jesus Alfredo Lopez Ramirez · Especialista de Sustentabilidad &amp; Enrique César Flores · Gerente de Distrito</span></div><div><span>Información propiedad de la marca. Prohibida su divulgación.</span><a href="https://wa.me/message/ENKDSAHYHIGAN1" target="_blank" rel="noreferrer">Comentarios y/o Sugerencias</a></div></footer></div>;
 }

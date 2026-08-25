@@ -68,6 +68,20 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(0.10 > self.payload["meta"]["target"])
         self.assertTrue(0.1000001 > self.payload["meta"]["target"])
 
+    def test_python_executive_summary_reconciles(self):
+        summary = {item["week"]: item for item in self.payload["meta"]["executiveWeeks"]}[34]
+        self.assertEqual(summary["fhw"], self.audit["latest"]["fhw"])
+        self.assertEqual(summary["lobby"], self.audit["latest"]["lobby"])
+        self.assertAlmostEqual(summary["ratio"], self.audit["latest"]["weightedRatio"], places=8)
+        self.assertEqual(summary["aboveTarget"] + summary["nearTarget"] + summary["opportunity"], summary["stores"])
+
+    def test_python_quality_gate(self):
+        quality = self.payload["meta"]["quality"]
+        self.assertEqual(quality["status"], "ok")
+        self.assertEqual(quality["invalidSourceRows"], 0)
+        self.assertEqual(quality["zeroDenominatorRows"], 0)
+        self.assertAlmostEqual(quality["latestCoverage"], self.audit["latest"]["stores"] / self.payload["meta"]["organization"]["stores"], places=8)
+
 
 if __name__ == "__main__":
     unittest.main()

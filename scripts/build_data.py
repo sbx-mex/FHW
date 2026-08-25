@@ -379,6 +379,7 @@ def build() -> dict[str, Any]:
     total_lobby = sum(item["lobby"] for item in latest)
     weighted_ratio = total_fhw / total_lobby if total_lobby else 0
     coverage_by_week = []
+    executive_weeks = []
     for item_week in live_weeks:
         fhw_keys = {code for code, source_week in fhw if source_week == item_week}
         lobby_keys = {code for code, source_week in lobby if source_week == item_week}
@@ -390,6 +391,33 @@ def build() -> dict[str, Any]:
             "matchedStores": len(fhw_keys & lobby_keys),
             "publishedStores": len(published),
         })
+        week_fhw = sum(item["fhw"] for item in published)
+        week_lobby = sum(item["lobby"] for item in published)
+        executive_weeks.append({
+            "week": item_week,
+            "month": week_month.get(item_week, month_fallback(item_week)),
+            "fhw": round(week_fhw, 6),
+            "lobby": round(week_lobby, 6),
+            "ratio": round(week_fhw / week_lobby, 8) if week_lobby else 0,
+            "stores": len(published),
+            "aboveTarget": sum(1 for item in published if item["ratio"] > TARGET),
+            "nearTarget": sum(1 for item in published if 0.08 <= item["ratio"] <= TARGET),
+            "opportunity": sum(1 for item in published if item["ratio"] < 0.08),
+        })
+
+    source_duplicates = fhw_audit["duplicatesConsolidated"] + lobby_audit["duplicatesConsolidated"]
+    source_invalid = fhw_audit["invalidRows"] + lobby_audit["invalidRows"]
+    extreme_ratios = sum(1 for item in live_records if item["ratio"] > 1)
+    low_volume = sum(1 for item in live_records if item["lobby"] < 100)
+    quality = {
+        "status": "ok" if source_invalid == 0 and zero_denominator == 0 else "review",
+        "sourceDuplicatesConsolidated": source_duplicates,
+        "invalidSourceRows": source_invalid,
+        "zeroDenominatorRows": zero_denominator,
+        "extremeRatiosFlagged": extreme_ratios,
+        "lowVolumeRowsFlagged": low_volume,
+        "latestCoverage": round(len(latest) / len(directory), 8) if directory else 0,
+    }
 
     example = next((item for item in live_records if item["ceco"] == "38101" and item["week"] == 30), None)
     audit = {
@@ -415,12 +443,14 @@ def build() -> dict[str, Any]:
             "weightedRatio": round(weighted_ratio, 8),
             "storesAtTarget": sum(1 for item in latest if item["ratio"] > TARGET),
         },
+        "quality": quality,
+        "executiveWeeks": executive_weeks,
         "example38101w30": example,
     }
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.0.0",
+            "version": "1.3.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,
@@ -440,6 +470,8 @@ def build() -> dict[str, Any]:
                 "hierarchy": hierarchy,
             },
             "coverageByWeek": coverage_by_week,
+            "executiveWeeks": executive_weeks,
+            "quality": quality,
         },
         "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),
         "historicalDm": [],
