@@ -33,7 +33,7 @@
       "number": 5,
       "name": "Filtros rápidos",
       "status": "ok",
-      "detail": "Mes y Semana permiten selección múltiple visible; Región y DM permanecen simples."
+      "detail": "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples."
     },
     {
       "number": 6,
@@ -45,13 +45,13 @@
       "number": 7,
       "name": "Ranking por alcance",
       "status": "ok",
-      "detail": "Top/Bottom cambia con Región, DM o Tienda."
+      "detail": "Muestra 11 regiones o hasta 9 DMs sin una lista interna recortada."
     },
     {
       "number": 8,
       "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF y Excel | Dash usan el alcance y periodos activos."
+      "detail": "PDF de una hoja y Excel con Dashboard, Detalle y Tendencia."
     },
     {
       "number": 9,
