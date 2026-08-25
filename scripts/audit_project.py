@@ -24,6 +24,7 @@ def main() -> int:
             history_payloads.append(history)
             records.extend(history.get("records", []))
     dashboard_source = (ROOT / "app/dashboard.tsx").read_text(encoding="utf-8")
+    pdf_source = (ROOT / "app/pdf-report.ts").read_text(encoding="utf-8")
     eslint_source = (ROOT / "eslint.config.mjs").read_text(encoding="utf-8")
     package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
     checks = []
@@ -120,8 +121,8 @@ def main() -> int:
     improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–29 promedian el porcentaje directo por tienda sin valores exagerados.")
     improvement(5, "Filtros rápidos", "function MultiSelect" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source and "Aplicar y cerrar" in dashboard_source, "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples.")
     improvement(6, "Interfaz simplificada", "Histórico</button>" not in dashboard_source and "Ponderado</button>" not in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta términos técnicos y deja sólo Semana o Mes.")
-    improvement(7, "Ranking por alcance", "PrintRanking" in dashboard_source and "pdfLimit" in dashboard_source and "11 regiones" in dashboard_source, "Nacional muestra 11 regiones; Región 5 Top/Bottom DMs y DM 3 Top/Bottom tiendas.")
-    improvement(8, "Exportación contextual", "ExportDialog" in dashboard_source and "exportStem" in dashboard_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal de una hoja y Excel con Dashboard, Detalle y Tendencia.")
+    improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "items.forEach" in pdf_source and "TOP 5" not in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance: 11 regiones, todos los DMs o todas las tiendas.")
+    improvement(8, "Exportación directa", "ExportDialog" in dashboard_source and "downloadDashboardPdf" in dashboard_source and "window.print" not in dashboard_source and "Guardar PDF" not in dashboard_source and "application/pdf" in pdf_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal y Excel XLSX se descargan directo; al finalizar sólo queda Cerrar.")
     improvement(9, "Responsive y PWA", (ROOT / "public/manifest.webmanifest").is_file() and (ROOT / "public/sw.js").is_file() and "safe-area-inset" in (ROOT / "app/mobile.css").read_text(encoding="utf-8"), "Navegación táctil y área segura para iOS/Android.")
     improvement(10, "Publicación rápida", pages.is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB y salida relativa para GitHub Pages.")
     errors = [item for item in checks if item["status"] != "ok"]

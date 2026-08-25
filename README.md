@@ -1,5 +1,7 @@
 # FHW · Cada Taza Cuenta
 
+La exportación se confirma una vez y se descarga directamente: PDF ejecutivo horizontal de una hoja o Excel Dashboard. Al finalizar, el aviso sólo permite cerrar.
+
 Dashboard ejecutivo PWA para medir el avance de vajilla reutilizable en bebidas consumidas dentro de tienda.
 
 ## Regla del indicador

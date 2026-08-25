@@ -1,4 +1,4 @@
-# Auditoría ejecutiva FHW · v1.9
+# Auditoría ejecutiva FHW · v1.10
 
 ## Regla de negocio
 
@@ -10,7 +10,7 @@ DM, Región y Nacional se calculan con ponderación por volumen. La meta se cump
 
 El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio operativo y organiza 11 regiones.
 
-## Mejora visual v1.9
+## Mejora de exportación v1.10
 
 1. Navegación compacta `Región | DM | Tienda`.
 2. Ranking nacional completo de las 11 regiones; una Región abre sus DMs y un DM abre sus tiendas.
@@ -20,8 +20,8 @@ El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio o
 6. Tendencia enero–agosto intercambiable por semanas o meses.
 7. Gráficas limpias, interactivas y sin efectos decorativos.
 8. Tabla redundante eliminada; Tienda siempre muestra `Nombre · CeCo`.
-9. Descarga contextual con confirmación cálida, PDF horizontal de una hoja y Excel XLSX visual; CSV eliminado.
-10. PDF sin listas recortadas: Nacional muestra 11 regiones, Región 5 Top/Bottom de DMs y DM 3 Top/Bottom de tiendas.
+9. Descarga contextual con confirmación cálida: PDF horizontal directo y Excel XLSX visual; al terminar sólo queda Cerrar.
+10. PDF sin listas recortadas ni duplicadas: Nacional muestra sus 11 regiones, Región sus DMs y DM sus tiendas, siempre en función del periodo.
 
 ## Histórico y ponderación
 
