@@ -5,20 +5,20 @@ Dashboard ejecutivo PWA para medir el avance de vajilla reutilizable en bebidas 
 ## Regla del indicador
 
 ```text
-Cada Taza Cuenta = SUM(FHW) / SUM(Bebidas Lobby)
+Cada Taza Cuenta = promedio por tienda de (FHW / Bebidas Lobby)
 Objetivo: mayor a 10%
 ```
 
 FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región el porcentaje siempre se recalcula con las sumas de sus tiendas; nunca se usa un promedio de porcentajes.
 
-## Alcance de la versión 1
+## Alcance de la versión 1.6
 
 - Pestañas **Tienda**, **DM** y **Región**.
-- Selección múltiple para Mes y Semana; Región y DM son filtros únicos encadenados.
-- KPIs ponderados, tendencia, lectura ejecutiva, Top y Bottom.
-- Histórico directo de semanas 1–29 y ponderación exacta desde semana 30.
+- Mes y Semana visibles como filtros rápidos de selección múltiple; Región y DM son filtros únicos encadenados.
+- Promedio por tienda, tendencia, lectura ejecutiva, Top y Bottom.
+- Tendencia completa enero–agosto: adopción por tienda en semanas 1–29 y ponderación exacta desde semana 30.
 - Semana incompleta protegida: sólo se publica cuando existen FHW y Bebidas Lobby.
-- Vista lista para **Descargar PDF** mediante el diálogo de impresión.
+- Menú contextual **Descargar** con PDF ejecutivo de una página y Excel XLSX con hojas `Dashboard` y `Detalle`.
 - Descarga del `Toolkit_Cada_Taza_Cuenta.pdf`.
 - PWA instalable y lectura en caché.
 - Auditoría JSON, pruebas unitarias y validación automática en GitHub Actions.
@@ -58,7 +58,7 @@ La versión lista para publicar queda en `docs/`. En **Settings → Pages**, sel
 | `FHW_Sem1_29.csv` | Histórico opcional con `Año, Semana, Ceco, FHW`; sustituye el histórico del libro de referencia. |
 | `Base_Año_Mes_Sem.xlsx` | Calendario opcional con `Año, Mes, Semana`; sustituye el calendario del libro de referencia. |
 
-El `Directorio_FHW.xlsx` incluido conserva como referencia validada el Directorio, calendario y CTC histórico de Foco2026. Puede reemplazarse por el archivo operativo definitivo sin cambiar el código.
+El `Directorio_FHW.xlsx` incluido usa `CeCo`, `Tienda`, `Región`, `DM` y `Aplica`; sólo se publican filas con `Aplica = Sí`.
 
 ## Validaciones incluidas
 

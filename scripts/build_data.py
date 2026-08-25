@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Construye el modelo auditable de FHW · Cada Taza Cuenta.
 
-Regla ejecutiva: FHW% = SUM(FHW) / SUM(Bebidas Lobby).
-Nunca se promedian porcentajes de tiendas para DM o Región.
+Calcula FHW / Bebidas Lobby por tienda y promedia los porcentajes válidos
+del alcance seleccionado.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "input"
 OUTPUT = ROOT / "public" / "data"
 TARGET = 0.10
+MIN_SYNC_RATE = 0.90
 MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 
@@ -87,6 +88,15 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def atomic_json(path: Path, payload: Any, *, compact: bool = True) -> None:
+    """Publica JSON completo o conserva la versión anterior si el proceso falla."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(f"{path.suffix}.next")
+    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":")) if compact else json.dumps(payload, ensure_ascii=False, indent=2)
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(path)
 
 
 def decoded_lines(path: Path) -> list[str]:
@@ -225,7 +235,7 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
             ratio_i = column(hist_headers, "Part FHW", "FHW")
             for row in sheet.iter_rows(min_row=hist_header + 1, values_only=True):
                 year, week, code, ratio = number(row[year_i]), number(row[week_i]), ceco(row[ceco_i]), percent(row[ratio_i])
-                if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None:
+                if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None and 0 <= ratio <= 1:
                     historical.append({"year": 2026, "week": int(week), "ceco": code, "ratio": ratio})
 
         historical_dm: list[dict[str, Any]] = []
@@ -239,7 +249,7 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
             valid_dms = {item["dm"] for item in directory.values()}
             for row in sheet.iter_rows(min_row=dm_header + 1, values_only=True):
                 year, week, dm, ratio = number(row[year_i]), number(row[week_i]), clean(row[dm_i]), percent(row[ratio_i])
-                if year == 2026 and week is not None and 1 <= int(week) <= 29 and dm in valid_dms and ratio is not None:
+                if year == 2026 and week is not None and 1 <= int(week) <= 29 and dm in valid_dms and ratio is not None and 0 <= ratio <= 1:
                     historical_dm.append({"year": 2026, "week": int(week), "dm": dm, "ratio": ratio})
 
         return directory, week_month, historical, historical_dm, {
@@ -268,7 +278,7 @@ def load_uploaded_historical(path: Path, directory: dict[str, dict[str, str]]) -
         week = number(value_from(row, "Semana"))
         code = ceco(value_from(row, "Ceco", "CeCo"))
         ratio = percent(value_from(row, "FHW"))
-        if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None:
+        if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None and 0 <= ratio <= 1:
             result.append({"year": 2026, "week": int(week), "ceco": code, "ratio": ratio})
     return result
 
@@ -294,6 +304,11 @@ def load_calendar_override(path: Path) -> dict[int, str]:
 def month_fallback(week: int) -> str:
     # ISO-week midpoint; used only when the supplied calendar has no mapping.
     return datetime.fromisocalendar(2026, week, 4).strftime("%b").title().replace("Jan", "Ene").replace("Apr", "Abr").replace("Aug", "Ago").replace("Dec", "Dic")
+
+
+def average_ratio(items: Iterable[dict[str, Any]]) -> float:
+    values = [float(item["ratio"]) for item in items if 0 <= float(item["ratio"]) <= 1]
+    return sum(values) / len(values) if values else 0
 
 
 def build() -> dict[str, Any]:
@@ -329,7 +344,38 @@ def build() -> dict[str, Any]:
         for region, dms in hierarchy_map.items()
     ]
 
-    live_keys = sorted(set(fhw) & set(lobby), key=lambda item: (item[1], int(item[0])))
+    source_weeks = sorted({week for _, week in set(fhw) | set(lobby) if week >= 30})
+    synchronization = []
+    ready_weeks = []
+    for item_week in source_weeks:
+        fhw_codes = {code for code, week in fhw if week == item_week}
+        lobby_codes = {code for code, week in lobby if week == item_week}
+        matched_codes = fhw_codes & lobby_codes
+        sync_rate = len(matched_codes) / max(len(fhw_codes), len(lobby_codes), 1)
+        has_both_sources = bool(fhw_codes) and bool(lobby_codes)
+        status = "ready" if has_both_sources and sync_rate >= MIN_SYNC_RATE else "pending"
+        if has_both_sources and sync_rate < MIN_SYNC_RATE:
+            raise ValueError(
+                f"Semana {item_week} fuera de congruencia: "
+                f"FHW={len(fhw_codes)}, Lobby={len(lobby_codes)}, coincidencias={len(matched_codes)}"
+            )
+        if status == "ready":
+            ready_weeks.append(item_week)
+        synchronization.append({
+            "week": item_week,
+            "status": status,
+            "fhwStores": len(fhw_codes),
+            "lobbyStores": len(lobby_codes),
+            "matchedStores": len(matched_codes),
+            "onlyFhw": len(fhw_codes - lobby_codes),
+            "onlyLobby": len(lobby_codes - fhw_codes),
+            "matchRate": round(sync_rate, 8),
+        })
+
+    live_keys = sorted(
+        ((set(fhw) & set(lobby)) & {(code, week) for code, week in set(fhw) | set(lobby) if week in ready_weeks}),
+        key=lambda item: (item[1], int(item[0])),
+    )
     live_records: list[dict[str, Any]] = []
     excluded_no_directory = zero_denominator = 0
     for code, week in live_keys:
@@ -375,9 +421,8 @@ def build() -> dict[str, Any]:
 
     all_records = sorted(historical_records + live_records, key=lambda item: (item["week"], item["store"].casefold()))
 
-    # La adopción histórica sí es comparable de S1 a S34 porque parte del
-    # resultado directo por tienda: porcentaje de tiendas con CTC > 10%.
-    adoption_rollups: dict[str, list[dict[str, Any]]] = {"national": [], "region": [], "dm": []}
+    # La serie completa es comparable porque parte del porcentaje por tienda.
+    average_rollups: dict[str, list[dict[str, Any]]] = {"national": [], "region": [], "dm": []}
     for level in ("national", "region", "dm"):
         grouped_adoption: defaultdict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
         for item in all_records:
@@ -386,19 +431,19 @@ def build() -> dict[str, Any]:
         for (item_week, name), items in sorted(grouped_adoption.items()):
             stores = {item["ceco"] for item in items}
             above = sum(1 for item in items if item["ratio"] > TARGET)
-            adoption_rollups[level].append({
+            average_rollups[level].append({
                 "week": item_week,
                 "name": name,
                 "stores": len(stores),
                 "aboveTarget": above,
-                "ratio": round(above / len(items), 8) if items else 0,
+                "ratio": round(average_ratio(items), 8),
             })
     live_weeks = sorted({item["week"] for item in live_records})
     latest_week = max(live_weeks) if live_weeks else 0
     latest = [item for item in live_records if item["week"] == latest_week]
     total_fhw = sum(item["fhw"] for item in latest)
     total_lobby = sum(item["lobby"] for item in latest)
-    weighted_ratio = total_fhw / total_lobby if total_lobby else 0
+    average_latest = average_ratio(latest)
     coverage_by_week = []
     executive_weeks = []
     for item_week in live_weeks:
@@ -419,7 +464,7 @@ def build() -> dict[str, Any]:
             "month": week_month.get(item_week, month_fallback(item_week)),
             "fhw": round(week_fhw, 6),
             "lobby": round(week_lobby, 6),
-            "ratio": round(week_fhw / week_lobby, 8) if week_lobby else 0,
+            "ratio": round(average_ratio(published), 8),
             "stores": len(published),
             "aboveTarget": sum(1 for item in published if item["ratio"] > TARGET),
             "nearTarget": sum(1 for item in published if 0.08 <= item["ratio"] <= TARGET),
@@ -430,6 +475,7 @@ def build() -> dict[str, Any]:
     source_invalid = fhw_audit["invalidRows"] + lobby_audit["invalidRows"]
     extreme_ratios = sum(1 for item in live_records if item["ratio"] > 1)
     low_volume = sum(1 for item in live_records if item["lobby"] < 100)
+    pending_weeks = [item["week"] for item in synchronization if item["status"] == "pending"]
     quality = {
         "status": "ok" if source_invalid == 0 and zero_denominator == 0 else "review",
         "sourceDuplicatesConsolidated": source_duplicates,
@@ -438,10 +484,11 @@ def build() -> dict[str, Any]:
         "extremeRatiosFlagged": extreme_ratios,
         "lowVolumeRowsFlagged": low_volume,
         "latestCoverage": round(len(latest) / len(directory), 8) if directory else 0,
+        "pendingWeeks": pending_weeks,
+        "synchronization": synchronization,
     }
 
-    # Rollups exactos para navegación ejecutiva. Cada nivel vuelve a sumar los
-    # numeradores y denominadores del CSV; nunca deriva de porcentajes hijos.
+    # Cada nivel promedia el porcentaje calculado por tienda.
     weekly_rollups: dict[str, list[dict[str, Any]]] = {"region": [], "dm": []}
     for level in ("region", "dm"):
         grouped: defaultdict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
@@ -455,7 +502,7 @@ def build() -> dict[str, Any]:
                 "name": name,
                 "fhw": round(rollup_fhw, 6),
                 "lobby": round(rollup_lobby, 6),
-                "ratio": round(rollup_fhw / rollup_lobby, 8),
+                "ratio": round(average_ratio(items), 8),
                 "stores": len({item["ceco"] for item in items}),
             })
 
@@ -463,7 +510,7 @@ def build() -> dict[str, Any]:
     audit = {
         "status": "ok",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
+        "formula": "AVG(FHW / Bebidas Lobby) por tienda",
         "target": TARGET,
         "latestCompleteWeek": latest_week,
         "sources": {"fhw": fhw_audit, "lobby": lobby_audit, "reference": reference_audit},
@@ -480,7 +527,7 @@ def build() -> dict[str, Any]:
             "stores": len(latest),
             "fhw": round(total_fhw, 6),
             "lobby": round(total_lobby, 6),
-            "weightedRatio": round(weighted_ratio, 8),
+            "averageRatio": round(average_latest, 8),
             "storesAtTarget": sum(1 for item in latest if item["ratio"] > TARGET),
         },
         "quality": quality,
@@ -490,7 +537,7 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.6.0",
+            "version": "1.7.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,
@@ -502,9 +549,15 @@ def build() -> dict[str, Any]:
                 for month in MONTHS if any(item["month"] == month for item in all_records)
             },
             "historyFiles": {},
-            "weeksWithWeightedInputs": live_weeks,
+            "weeksWithSynchronizedInputs": live_weeks,
             "weeksDirectOnly": sorted({item["week"] for item in historical_records}),
-            "historyPolicy": "Semanas 1-29 conservan el porcentaje directo; semanas 30+ usan SUM(FHW) / SUM(Bebidas Lobby).",
+            "historyPolicy": "Semanas 1-29 usan el porcentaje directo por tienda; semanas 30+ calculan FHW/Lobby por tienda. Todos los alcances muestran el promedio de porcentajes válidos.",
+            "updateState": {
+                "readyWeeks": live_weeks,
+                "pendingWeeks": pending_weeks,
+                "latestReadyWeek": latest_week,
+                "synchronization": synchronization,
+            },
             "latestStores": len(latest),
             "organization": {
                 "regions": len(hierarchy),
@@ -520,7 +573,7 @@ def build() -> dict[str, Any]:
             "coverageByWeek": coverage_by_week,
             "executiveWeeks": executive_weeks,
             "weeklyRollups": weekly_rollups,
-            "adoptionRollups": adoption_rollups,
+            "averageRollups": average_rollups,
             "quality": quality,
         },
         "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),
@@ -528,9 +581,11 @@ def build() -> dict[str, Any]:
     }
     OUTPUT.mkdir(parents=True, exist_ok=True)
     history_output = OUTPUT / "history"
-    if history_output.exists():
-        shutil.rmtree(history_output)
-    history_output.mkdir(parents=True)
+    history_next = OUTPUT / "history.next"
+    history_backup = OUTPUT / "history.previous"
+    if history_next.exists():
+        shutil.rmtree(history_next)
+    history_next.mkdir(parents=True)
     for month in payload["meta"]["months"]:
         month_records = [item for item in historical_records if item["month"] == month]
         if not month_records:
@@ -539,12 +594,16 @@ def build() -> dict[str, Any]:
         month_dm = [item for item in historical_dm if item["week"] in weeks]
         filename = f"{month.casefold()}.json"
         payload["meta"]["historyFiles"][month] = f"data/history/{filename}"
-        (history_output / filename).write_text(
-            json.dumps({"records": month_records, "historicalDm": month_dm}, ensure_ascii=False, separators=(",", ":")),
-            encoding="utf-8",
-        )
-    (OUTPUT / "fhw-dashboard.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    (OUTPUT / "data-audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_json(history_next / filename, {"records": month_records, "historicalDm": month_dm})
+    if history_backup.exists():
+        shutil.rmtree(history_backup)
+    if history_output.exists():
+        history_output.replace(history_backup)
+    history_next.replace(history_output)
+    if history_backup.exists():
+        shutil.rmtree(history_backup)
+    atomic_json(OUTPUT / "fhw-dashboard.json", payload)
+    atomic_json(OUTPUT / "data-audit.json", audit, compact=False)
     return audit
 
 

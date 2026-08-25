@@ -1,0 +1,43 @@
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+button,
+a,
+summary,
+select {
+  touch-action: manipulation;
+}
+
+.topbar {
+  padding-top: max(9px, env(safe-area-inset-top));
+}
+
+.export-menu > div {
+  width: min(260px, calc(100vw - 36px));
+}
+
+.filter-rail > div {
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-rail button {
+  min-height: 34px;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 680px) {
+  .topbar {
+    padding-top: max(7px, env(safe-area-inset-top));
+  }
+
+  .filter-rail button {
+    min-height: 42px;
+    padding-inline: 14px;
+  }
+}

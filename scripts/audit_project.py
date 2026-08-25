@@ -30,8 +30,12 @@ def main() -> int:
     def check(name: str, condition: bool, detail: str = ""):
         checks.append({"name": name, "status": "ok" if condition else "error", "detail": detail})
     check("Data status", audit.get("status") == "ok")
-    check("Latest complete week", audit.get("latestCompleteWeek") == 34, str(audit.get("latestCompleteWeek")))
-    check("Weighted formula", audit.get("formula") == "SUM(FHW) / SUM(Bebidas Lobby)")
+    update_state = payload.get("meta", {}).get("updateState", {})
+    ready_weeks = update_state.get("readyWeeks", [])
+    pending_weeks = update_state.get("pendingWeeks", [])
+    dynamic_latest = max(ready_weeks, default=0)
+    check("Latest synchronized week", audit.get("latestCompleteWeek") == dynamic_latest, str(audit.get("latestCompleteWeek")))
+    check("Average formula", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda")
     check("Example 38101", abs(audit["example38101w30"]["ratio"] - 59 / 3111) < 1e-8)
     check("Live rows", audit["joins"]["publishedLiveRows"] > 4000, str(audit["joins"]["publishedLiveRows"]))
     check("Historical rows", audit["joins"]["publishedHistoricalRows"] > 20000, str(audit["joins"]["publishedHistoricalRows"]))
@@ -42,8 +46,9 @@ def main() -> int:
     check("Fast initial payload", (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024)
     check("All rows published", len(records) == audit["joins"]["publishedLiveRows"] + audit["joins"]["publishedHistoricalRows"], str(len(records)))
     latest_rows = [row for row in payload["records"] if row["week"] == payload["meta"]["latestCompleteWeek"]]
-    latest_weighted = sum(row["fhw"] for row in latest_rows) / sum(row["lobby"] for row in latest_rows)
-    check("Latest weighted result", abs(latest_weighted - audit["latest"]["weightedRatio"]) < 1e-8, str(latest_weighted))
+    latest_average = sum(row["ratio"] for row in latest_rows) / len(latest_rows)
+    check("Latest average result", abs(latest_average - audit["latest"]["averageRatio"]) < 1e-8, str(latest_average))
+    check("Ratios in valid range", all(0 <= row["ratio"] <= 1 for row in records))
     hierarchy = payload["meta"].get("organization", {}).get("hierarchy", [])
     hierarchy_cecos = {
         store["ceco"]
@@ -61,13 +66,21 @@ def main() -> int:
     executive_weeks = payload["meta"].get("executiveWeeks", [])
     quality = payload["meta"].get("quality", {})
     latest_summary = next((item for item in executive_weeks if item["week"] == audit["latestCompleteWeek"]), {})
-    check("Python executive summary", bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["weightedRatio"]) < 1e-8)
+    check("Python executive summary", bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["averageRatio"]) < 1e-8)
     check("Python quality gate", quality.get("status") == "ok" and quality.get("invalidSourceRows") == 0 and quality.get("zeroDenominatorRows") == 0)
+    synchronization = update_state.get("synchronization", [])
+    check("Numerator denominator synchronized", bool(synchronization) and all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"))
+    check("Pending weeks are not published", not any(row["week"] in pending_weeks and row["source"] == "calculado" for row in records), str(pending_weeks))
     check("Performance bands reconcile", bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1))
     check("Eleven regions", payload["meta"]["organization"]["regions"] == 11, str(payload["meta"]["organization"]["regions"]))
     rollups = payload["meta"].get("weeklyRollups", {})
     rollup_rows = rollups.get("region", []) + rollups.get("dm", [])
-    check("Python weighted rollups", bool(rollup_rows) and all(item["lobby"] > 0 and abs(item["ratio"] - item["fhw"] / item["lobby"]) < 1e-8 for item in rollup_rows))
+    live_records = payload["records"]
+    def expected_rollup(item):
+        level = "region" if item in rollups.get("region", []) else "dm"
+        selected = [row for row in live_records if row["week"] == item["week"] and row[level] == item["name"]]
+        return sum(row["ratio"] for row in selected) / len(selected) if selected else -1
+    check("Python average rollups", bool(rollup_rows) and all(abs(item["ratio"] - expected_rollup(item)) < 1e-8 for item in rollup_rows))
     for name, path in {
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
@@ -98,17 +111,17 @@ def main() -> int:
     improvements = []
     def improvement(number: int, name: str, condition: bool, detail: str):
         improvements.append({"number": number, "name": name, "status": "ok" if condition else "error", "detail": detail})
-    improvement(1, "Directorio aplicable", "Aplica = Sí" in payload["meta"]["eligibility"]["rule"], "Sólo publica tiendas elegibles del directorio.")
-    improvement(2, "Jerarquía automática", "selectRegion" in dashboard_source and "selectDm" in dashboard_source, "Nacional muestra 11 regiones; Región abre DMs; DM abre tiendas.")
-    improvement(3, "Filtros rápidos", "function FilterRail" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source and "period-select" not in dashboard_source, "Mes y Semana usan botones múltiples visibles; Región y DM permanecen simples.")
-    improvement(4, "Vista ejecutiva limpia", "overview-card" in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta los KPI técnicos FHW y Bebidas Lobby.")
-    improvement(5, "Ranking por alcance", "rankingMode" in dashboard_source and "Top desempeño" in dashboard_source and "Bottom · oportunidad" in dashboard_source, "Ranking Top/Bottom cambia con Región, DM o Tienda.")
-    adoption_rollups = payload["meta"].get("adoptionRollups", {}).get("national", [])
-    improvement(6, "Historia enero-agosto", len(adoption_rollups) == 34 and 'trendPeriod==="week"' in dashboard_source and 'trendPeriod==="month"' in dashboard_source, "Las 34 semanas alimentan una tendencia mensual o semanal sin inventar denominadores históricos.")
-    improvement(7, "Sin tabla redundante", "<table" not in dashboard_source and "Vacante</" not in dashboard_source, "Retira la tabla duplicada y evita publicar Vacante como tienda.")
-    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportXlsx" in dashboard_source and "export-menu" in dashboard_source and "function exportCsv" not in dashboard_source and (ROOT / "app/xlsx-report.ts").is_file(), "PDF y XLSX toman nivel, alcance y periodos activos; CSV fue retirado.")
-    improvement(9, "Kit gobernado por JSON", (ROOT / "public/data/resources.json").is_file() and 'fetch("data/resources.json")' in dashboard_source, "El recurso descargable se administra desde JSON.")
-    improvement(10, "Rendimiento y publicación", pages.is_file() and (ROOT / "public/sw.js").is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos.")
+    average_rollups = payload["meta"].get("averageRollups", {}).get("national", [])
+    improvement(1, "Promedio correcto", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda", "Calcula cada tienda y después promedia; no suma porcentajes ni divide totales.")
+    improvement(2, "Cruce sincronizado", all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"), "El mismo CeCo y semana debe existir en numerador y denominador.")
+    improvement(3, "Semanas futuras automáticas", dynamic_latest == payload["meta"]["latestCompleteWeek"] and bool(pending_weeks), "Detecta semanas posteriores y deja pendientes las fuentes incompletas.")
+    improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–29 promedian el porcentaje directo por tienda sin valores exagerados.")
+    improvement(5, "Filtros rápidos", "function FilterRail" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source, "Mes y Semana permiten selección múltiple visible; Región y DM permanecen simples.")
+    improvement(6, "Interfaz simplificada", "Histórico</button>" not in dashboard_source and "Ponderado</button>" not in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta términos técnicos y deja sólo Semana o Mes.")
+    improvement(7, "Ranking por alcance", "rankingMode" in dashboard_source and "Top desempeño" in dashboard_source and "Bottom · oportunidad" in dashboard_source, "Top/Bottom cambia con Región, DM o Tienda.")
+    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportXlsx" in dashboard_source and "Excel | Dash" in dashboard_source and "function exportCsv" not in dashboard_source, "PDF y Excel | Dash usan el alcance y periodos activos.")
+    improvement(9, "Responsive y PWA", (ROOT / "public/manifest.webmanifest").is_file() and (ROOT / "public/sw.js").is_file() and "safe-area-inset" in (ROOT / "app/mobile.css").read_text(encoding="utf-8"), "Navegación táctil y área segura para iOS/Android.")
+    improvement(10, "Publicación rápida", pages.is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB y salida relativa para GitHub Pages.")
     errors = [item for item in checks if item["status"] != "ok"]
     improvement_errors = [item for item in improvements if item["status"] != "ok"]
     report = {
