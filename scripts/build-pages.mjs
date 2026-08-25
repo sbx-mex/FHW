@@ -18,9 +18,12 @@ if (!response.ok) throw new Error(`No se pudo renderizar la portada: HTTP ${resp
 
 let html = await response.text();
 html = html
-  .replaceAll('="/assets/', '="./assets/')
-  .replaceAll('="/manifest.webmanifest', '="./manifest.webmanifest')
-  .replaceAll('content="/assets/', 'content="./assets/');
+  .replace(/([="'(])\/assets\//g, "$1./assets/")
+  .replace(/([="'(])\/manifest\.webmanifest/g, "$1./manifest.webmanifest");
+
+if (/([="'(])\/(assets\/|manifest\.webmanifest)/.test(html)) {
+  throw new Error("GitHub Pages contiene rutas absolutas fuera de /FHW/");
+}
 
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });

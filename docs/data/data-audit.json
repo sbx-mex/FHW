@@ -1,0 +1,134 @@
+{
+  "status": "ok",
+  "generatedAt": "2026-08-25T07:41:16.603418+00:00",
+  "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
+  "target": 0.1,
+  "latestCompleteWeek": 34,
+  "sources": {
+    "fhw": {
+      "file": "CTC_FHW.csv",
+      "headerRow": 9,
+      "rows": 5264,
+      "validKeys": 5264,
+      "duplicatesConsolidated": 0,
+      "invalidRows": 0,
+      "sha256": "725d42a5c70cf4d571a36cc387f6445ad3a8e6a4f00227766e07efeeb0f20aae"
+    },
+    "lobby": {
+      "file": "CTC_Bebidas_Lobby.csv",
+      "headerRow": 11,
+      "rows": 4695,
+      "validKeys": 4695,
+      "duplicatesConsolidated": 0,
+      "invalidRows": 0,
+      "sha256": "feb71f18317fc16944bea3e5d27685216f56c8d813deb67b0370cafc118efada"
+    },
+    "reference": {
+      "file": "Directorio_FHW.xlsx",
+      "sheet": "Directorio",
+      "includedStores": 942,
+      "excludedStores": 26,
+      "applyRule": "Estatus = Abierta",
+      "calendarWeeks": 52,
+      "historicalStoreRows": 24612,
+      "historicalDmRows": 1769,
+      "sha256": "5e34677c8bfc14fcc20d25bfe60c40842abb14ae89cca93f785c5f681d4815ca",
+      "calendarSource": "Directorio_FHW.xlsx"
+    }
+  },
+  "joins": {
+    "liveKeysFhw": 5264,
+    "liveKeysLobby": 4695,
+    "intersectedKeys": 4455,
+    "publishedLiveRows": 4421,
+    "publishedHistoricalRows": 24612,
+    "excludedNoApplicableDirectory": 34,
+    "zeroDenominator": 0
+  },
+  "latest": {
+    "stores": 889,
+    "fhw": 148385.0,
+    "lobby": 2106853.0,
+    "weightedRatio": 0.07042969,
+    "storesAtTarget": 250
+  },
+  "quality": {
+    "status": "ok",
+    "sourceDuplicatesConsolidated": 0,
+    "invalidSourceRows": 0,
+    "zeroDenominatorRows": 0,
+    "extremeRatiosFlagged": 0,
+    "lowVolumeRowsFlagged": 0,
+    "latestCoverage": 0.94373673
+  },
+  "executiveWeeks": [
+    {
+      "week": 30,
+      "month": "Jul",
+      "fhw": 158249.0,
+      "lobby": 2057953.0,
+      "ratio": 0.07689631,
+      "stores": 888,
+      "aboveTarget": 308,
+      "nearTarget": 105,
+      "opportunity": 475
+    },
+    {
+      "week": 31,
+      "month": "Ago",
+      "fhw": 155886.0,
+      "lobby": 2078151.0,
+      "ratio": 0.07501187,
+      "stores": 879,
+      "aboveTarget": 287,
+      "nearTarget": 88,
+      "opportunity": 504
+    },
+    {
+      "week": 32,
+      "month": "Ago",
+      "fhw": 153587.0,
+      "lobby": 2058203.0,
+      "ratio": 0.07462189,
+      "stores": 876,
+      "aboveTarget": 278,
+      "nearTarget": 114,
+      "opportunity": 484
+    },
+    {
+      "week": 33,
+      "month": "Ago",
+      "fhw": 150827.0,
+      "lobby": 2130831.0,
+      "ratio": 0.07078318,
+      "stores": 889,
+      "aboveTarget": 255,
+      "nearTarget": 104,
+      "opportunity": 530
+    },
+    {
+      "week": 34,
+      "month": "Ago",
+      "fhw": 148385.0,
+      "lobby": 2106853.0,
+      "ratio": 0.07042969,
+      "stores": 889,
+      "aboveTarget": 250,
+      "nearTarget": 107,
+      "opportunity": 532
+    }
+  ],
+  "example38101w30": {
+    "year": 2026,
+    "week": 30,
+    "month": "Jul",
+    "ceco": "38101",
+    "store": "Angel",
+    "dm": "Daniel Flores Maldonado",
+    "region": "Centro Centro",
+    "fhw": 59.0,
+    "lobby": 3111.0,
+    "ratio": 0.01896496,
+    "source": "calculado"
+  }
+}

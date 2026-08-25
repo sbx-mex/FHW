@@ -20,6 +20,8 @@ test("publishes a relative GitHub Pages entry", async () => {
   assert.match(html, /FHW · Cada Taza Cuenta/);
   assert.doesNotMatch(html, /="\/assets\//);
   assert.match(html, /="\.\/assets\//);
+  assert.doesNotMatch(html, /import\("\/assets\//);
+  assert.doesNotMatch(html, /\\"\/assets\//);
 });
 
 test("keeps the interactive dashboard lightweight", async () => {
