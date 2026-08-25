@@ -316,6 +316,17 @@ def build() -> dict[str, Any]:
     if uploaded_historical:
         historical = uploaded_historical
 
+    hierarchy_map: defaultdict[str, defaultdict[str, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
+    for code, item in sorted(directory.items(), key=lambda pair: (pair[1]["region"].casefold(), pair[1]["dm"].casefold(), pair[1]["store"].casefold())):
+        hierarchy_map[item["region"]][item["dm"]].append({"ceco": code, "name": item["store"]})
+    hierarchy = [
+        {
+            "name": region,
+            "dms": [{"name": dm, "stores": stores} for dm, stores in dms.items()],
+        }
+        for region, dms in hierarchy_map.items()
+    ]
+
     live_keys = sorted(set(fhw) & set(lobby), key=lambda item: (item[1], int(item[0])))
     live_records: list[dict[str, Any]] = []
     excluded_no_directory = zero_denominator = 0
@@ -367,6 +378,18 @@ def build() -> dict[str, Any]:
     total_fhw = sum(item["fhw"] for item in latest)
     total_lobby = sum(item["lobby"] for item in latest)
     weighted_ratio = total_fhw / total_lobby if total_lobby else 0
+    coverage_by_week = []
+    for item_week in live_weeks:
+        fhw_keys = {code for code, source_week in fhw if source_week == item_week}
+        lobby_keys = {code for code, source_week in lobby if source_week == item_week}
+        published = [item for item in live_records if item["week"] == item_week]
+        coverage_by_week.append({
+            "week": item_week,
+            "fhwStores": len(fhw_keys),
+            "lobbyStores": len(lobby_keys),
+            "matchedStores": len(fhw_keys & lobby_keys),
+            "publishedStores": len(published),
+        })
 
     example = next((item for item in live_records if item["ceco"] == "38101" and item["week"] == 30), None)
     audit = {
@@ -410,6 +433,13 @@ def build() -> dict[str, Any]:
             },
             "historyFiles": {},
             "latestStores": len(latest),
+            "organization": {
+                "regions": len(hierarchy),
+                "dms": len({item["dm"] for item in directory.values()}),
+                "stores": len(directory),
+                "hierarchy": hierarchy,
+            },
+            "coverageByWeek": coverage_by_week,
         },
         "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),
         "historicalDm": [],

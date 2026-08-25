@@ -1,0 +1,70 @@
+{
+  "status": "ok",
+  "checksTotal": 26,
+  "checksOk": 26,
+  "improvementsTotal": 10,
+  "improvementsOk": 10,
+  "improvements": [
+    {
+      "number": 1,
+      "name": "CI limpio",
+      "status": "ok",
+      "detail": "El lint sólo revisa código fuente, no archivos compilados."
+    },
+    {
+      "number": 2,
+      "name": "Jerarquía operativa",
+      "status": "ok",
+      "detail": "Región, DM y tiendas se generan desde Directorio_FHW.xlsx."
+    },
+    {
+      "number": 3,
+      "name": "Ponderación exacta",
+      "status": "ok",
+      "detail": "DM y Región usan SUM(FHW) / SUM(Bebidas Lobby)."
+    },
+    {
+      "number": 4,
+      "name": "Filtro Región a DM",
+      "status": "ok",
+      "detail": "Elegir Región abre sus DMs y limpia el nivel inferior."
+    },
+    {
+      "number": 5,
+      "name": "Filtro DM a Tienda",
+      "status": "ok",
+      "detail": "Elegir DM abre sus tiendas."
+    },
+    {
+      "number": 6,
+      "name": "Historia anual",
+      "status": "ok",
+      "detail": "Carga anual bajo demanda; el mes sigue siendo la vista rápida."
+    },
+    {
+      "number": 7,
+      "name": "Gráfico dinámico legible",
+      "status": "ok",
+      "detail": "Ajusta etiquetas y distingue ponderado de histórico directo."
+    },
+    {
+      "number": 8,
+      "name": "Detalle ordenable",
+      "status": "ok",
+      "detail": "Orden por desempeño, oportunidad o nombre."
+    },
+    {
+      "number": 9,
+      "name": "Búsqueda ampliada",
+      "status": "ok",
+      "detail": "Localiza tiendas por nombre o CeCo."
+    },
+    {
+      "number": 10,
+      "name": "Publicación y PWA",
+      "status": "ok",
+      "detail": "GitHub Pages en /docs con rutas relativas y modo instalable."
+    }
+  ],
+  "errors": []
+}

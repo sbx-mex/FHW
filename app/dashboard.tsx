@@ -10,8 +10,10 @@ type Row = {
   ratio: number; source: string;
 };
 type HistoricalDm = { year: number; week: number; dm: string; ratio: number };
+type Organization = { regions: number; dms: number; stores: number; hierarchy: Array<{ name: string; dms: Array<{ name: string; stores: Array<{ ceco: string; name: string }> }> }> };
+type Coverage = { week: number; fhwStores: number; lobbyStores: number; matchedStores: number; publishedStores: number };
 type Payload = {
-  meta: { title: string; version: string; generatedAt: string; target: number; latestCompleteWeek: number; formula: string; weeks: number[]; months: string[]; monthWeeks: Record<string, number[]>; historyFiles: Record<string, string>; latestStores: number };
+  meta: { title: string; version: string; generatedAt: string; target: number; latestCompleteWeek: number; formula: string; weeks: number[]; months: string[]; monthWeeks: Record<string, number[]>; historyFiles: Record<string, string>; latestStores: number; organization: Organization; coverageByWeek: Coverage[] };
   records: Row[];
   historicalDm: HistoricalDm[];
 };
@@ -54,20 +56,21 @@ function groupLive(rows: Row[], view: View): Result[] {
 }
 
 function TrendChart({ points, target }: { points: TrendPoint[]; target: number }) {
-  if (!points.length) return <div className="empty-chart"><strong>Sin consolidado ponderable</strong><span>El histórico directo no incluye los ponderadores necesarios para esta vista.</span></div>;
+  if (!points.length) return <div className="empty-chart"><strong>Sin consolidado ponderable</strong><span>Ponderación exacta disponible desde S30.</span></div>;
   const width = 760, height = 250, left = 46, right = 24, top = 24, bottom = 38;
   const max = Math.max(target * 1.35, ...points.map((point) => point.ratio * 1.18), 0.02);
   const x = (index: number) => points.length === 1 ? width / 2 : left + index * ((width - left - right) / (points.length - 1));
   const y = (value: number) => top + (max - value) * ((height - top - bottom) / max);
   const line = points.map((point, index) => `${x(index)},${y(point.ratio)}`).join(" ");
+  const labelEvery = points.length > 20 ? 4 : points.length > 10 ? 2 : 1;
   return <svg className="trend-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Tendencia semanal de Cada Taza Cuenta">
     {[0, .5, 1].map((fraction) => <g key={fraction}><line x1={left} x2={width - right} y1={y(max * fraction)} y2={y(max * fraction)} className="grid-line"/><text x={left - 9} y={y(max * fraction) + 4} textAnchor="end" className="axis-label">{pct.format(max * fraction)}</text></g>)}
     <line x1={left} x2={width - right} y1={y(target)} y2={y(target)} className="target-line"/>
     <text x={width - right} y={Math.max(12, y(target) - 7)} textAnchor="end" className="target-label">Objetivo &gt; {pct.format(target)}</text>
     <polyline points={line} className="trend-line"/>
     {points.map((point, index) => <g key={point.week}>
-      <circle cx={x(index)} cy={y(point.ratio)} r="5" className={point.ratio > target ? "point is-good" : "point"}/>
-      <text x={x(index)} y={height - 14} textAnchor="middle" className="axis-label">S{point.week}</text>
+      <circle cx={x(index)} cy={y(point.ratio)} r="5" className={`${point.ratio > target ? "point is-good" : "point"}${point.direct ? " is-direct" : ""}`}/>
+      {(index % labelEvery === 0 || index === points.length - 1) && <text x={x(index)} y={height - 14} textAnchor="middle" className="axis-label">S{point.week}</text>}
       <title>{`Semana ${point.week}: ${pct.format(point.ratio)}`}</title>
     </g>)}
   </svg>;
@@ -100,9 +103,12 @@ export default function Dashboard() {
   const [dm, setDm] = useState("Todos");
   const [query, setQuery] = useState("");
   const [rankingMode, setRankingMode] = useState<"top" | "bottom">("top");
+  const [trendRange, setTrendRange] = useState<"month" | "year">("month");
+  const [sortMode, setSortMode] = useState<"ratio-desc" | "ratio-asc" | "name">("ratio-desc");
   const [historyRows, setHistoryRows] = useState<Row[]>([]);
   const [historyDm, setHistoryDm] = useState<HistoricalDm[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const historyRequested = useRef(new Set<string>());
 
   useEffect(() => {
@@ -122,27 +128,34 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!data || !month || historyRequested.current.has(month)) return;
-    const filename = data.meta.historyFiles[month];
-    if (!filename) return;
-    historyRequested.current.add(month);
+    if (!data || !month) return;
+    const targets = trendRange === "year" ? Object.keys(data.meta.historyFiles) : [month];
+    const pending = targets.filter((item) => data.meta.historyFiles[item] && !historyRequested.current.has(item));
+    if (!pending.length) return;
+    pending.forEach((item) => historyRequested.current.add(item));
     queueMicrotask(() => setHistoryLoading(true));
-    fetch(filename).then((response) => {
-      if (!response.ok) throw new Error(`No se pudo leer ${month}`);
+    Promise.all(pending.map(async (item) => {
+      const response = await fetch(data.meta.historyFiles[item]);
+      if (!response.ok) throw new Error(`No se pudo leer ${item}`);
       return response.json() as Promise<{ records: Row[]; historicalDm: HistoricalDm[] }>;
-    }).then((history) => {
-      setHistoryRows((current) => [...current, ...history.records]);
-      setHistoryDm((current) => [...current, ...history.historicalDm]);
+    })).then((histories) => {
+      setHistoryRows((current) => [...current, ...histories.flatMap((item) => item.records)]);
+      setHistoryDm((current) => [...current, ...histories.flatMap((item) => item.historicalDm)]);
+      setHistoryError("");
     }).catch((reason) => {
-      historyRequested.current.delete(month);
-      setError(reason instanceof Error ? reason.message : "No se pudo leer el histórico");
+      pending.forEach((item) => historyRequested.current.delete(item));
+      setHistoryError(reason instanceof Error ? reason.message : "Histórico parcial");
     }).finally(() => setHistoryLoading(false));
-  }, [data, month]);
+  }, [data, month, trendRange]);
 
   const baseRows = useMemo(() => [...(data?.records ?? []), ...historyRows], [data, historyRows]);
   const allHistoricalDm = useMemo(() => [...(data?.historicalDm ?? []), ...historyDm], [data, historyDm]);
-  const regions = useMemo(() => [...new Set(baseRows.map((row) => row.region))].sort((a, b) => a.localeCompare(b, "es")), [baseRows]);
-  const dms = useMemo(() => [...new Set(baseRows.filter((row) => region === "Todas" || row.region === region).map((row) => row.dm))].sort((a, b) => a.localeCompare(b, "es")), [baseRows, region]);
+  const regions = useMemo(() => data?.meta.organization.hierarchy.map((item) => item.name) ?? [], [data]);
+  const dms = useMemo(() => {
+    const hierarchy = data?.meta.organization.hierarchy ?? [];
+    const scoped = region === "Todas" ? hierarchy : hierarchy.filter((item) => item.name === region);
+    return [...new Set(scoped.flatMap((item) => item.dms.map((district) => district.name)))].sort((a, b) => a.localeCompare(b, "es"));
+  }, [data, region]);
   const monthWeeks = useMemo(() => data?.meta.monthWeeks[month] ?? [], [data, month]);
 
   function changeMonth(value: string) {
@@ -164,6 +177,13 @@ export default function Dashboard() {
     if (value !== "Todos") setView("store");
   }
 
+  function resetScope() {
+    setRegion("Todas");
+    setDm("Todos");
+    setQuery("");
+    setView("region");
+  }
+
   function drillDown(item: Result) {
     if (view === "region") changeRegion(item.id);
     else if (view === "dm") changeDm(item.id);
@@ -181,10 +201,15 @@ export default function Dashboard() {
     window.setTimeout(restore, 4000);
   }
 
-  const scopeRows = useMemo(() => baseRows.filter((row) =>
-    row.month === month && (region === "Todas" || row.region === region) && (dm === "Todos" || row.dm === dm)
-    && (!query || row.store.toLocaleLowerCase("es-MX").includes(query.toLocaleLowerCase("es-MX")))
-  ), [baseRows, month, region, dm, query]);
+  const hierarchyRows = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase("es-MX");
+    return baseRows.filter((row) =>
+      (region === "Todas" || row.region === region) && (dm === "Todos" || row.dm === dm)
+      && (!term || row.store.toLocaleLowerCase("es-MX").includes(term) || row.ceco.includes(term))
+    );
+  }, [baseRows, region, dm, query]);
+  const scopeRows = useMemo(() => hierarchyRows.filter((row) => row.month === month), [hierarchyRows, month]);
+  const trendRows = trendRange === "year" ? hierarchyRows : scopeRows;
   const selectedRows = useMemo(() => scopeRows.filter((row) => row.week === week), [scopeRows, week]);
   const hasLive = selectedRows.some((row) => row.fhw !== null && row.lobby !== null);
 
@@ -200,38 +225,44 @@ export default function Dashboard() {
   }, [data, hasLive, selectedRows, view, week, allHistoricalDm]);
 
   const ranking = useMemo(() => [...results].sort((a, b) => rankingMode === "top" ? b.ratio - a.ratio : a.ratio - b.ratio).slice(0, 7), [results, rankingMode]);
+  const sortedResults = useMemo(() => [...results].sort((a, b) => {
+    if (sortMode === "name") return a.label.localeCompare(b.label, "es");
+    return sortMode === "ratio-desc" ? b.ratio - a.ratio : a.ratio - b.ratio;
+  }), [results, sortMode]);
   const score = useMemo(() => hasLive ? weighted(selectedRows) : { fhw: 0, lobby: 0, ratio: null }, [hasLive, selectedRows]);
   const atTarget = results.filter((item) => item.ratio > (data?.meta.target ?? .1)).length;
+  const coverage = data?.meta.coverageByWeek.find((item) => item.week === week);
 
   const trend = useMemo<TrendPoint[]>(() => {
     if (!data) return [];
-    const weeks = [...new Set(scopeRows.map((row) => row.week))].sort((a, b) => a - b);
-    const oneStore = new Set(scopeRows.map((row) => row.ceco)).size === 1;
+    const weeks = [...new Set(trendRows.map((row) => row.week))].sort((a, b) => a - b);
+    const oneStore = new Set(trendRows.map((row) => row.ceco)).size === 1;
     if (view === "store" && oneStore) return weeks.map((item) => {
-      const row = scopeRows.find((candidate) => candidate.week === item)!;
+      const row = trendRows.find((candidate) => candidate.week === item)!;
       return { week: item, ratio: row.ratio, direct: row.fhw === null };
     });
     if (view === "dm" && dm !== "Todos") return weeks.map((item) => {
-      const live = weighted(scopeRows.filter((row) => row.week === item));
+      const live = weighted(trendRows.filter((row) => row.week === item));
       if (live.ratio !== null) return { week: item, ratio: live.ratio, direct: false };
       const direct = allHistoricalDm.find((candidate) => candidate.week === item && candidate.dm === dm);
       return direct ? { week: item, ratio: direct.ratio, direct: true } : null;
     }).filter((item): item is TrendPoint => item !== null);
     return weeks.map((item) => {
-      const live = weighted(scopeRows.filter((row) => row.week === item));
+      const live = weighted(trendRows.filter((row) => row.week === item));
       return live.ratio === null ? null : { week: item, ratio: live.ratio, direct: false };
     }).filter((item): item is TrendPoint => item !== null);
-  }, [data, scopeRows, view, dm, allHistoricalDm]);
+  }, [data, trendRows, view, dm, allHistoricalDm]);
 
   const previous = trend.filter((point) => point.week < week).at(-1);
   const currentRatio = score.ratio ?? (results.length === 1 ? results[0].ratio : null);
   const delta = currentRatio !== null && previous ? currentRatio - previous.ratio : null;
   const gap = currentRatio === null ? null : Math.max(0, (data?.meta.target ?? .1) - currentRatio);
+  const leader = [...results].sort((a, b) => b.ratio - a.ratio)[0];
   const story = historyLoading ? "Cargando el histórico…" : currentRatio === null
     ? "Histórico disponible por tienda y distrito."
     : currentRatio > (data?.meta.target ?? .1)
-      ? `El alcance supera la meta por ${pct.format(currentRatio - (data?.meta.target ?? .1))}. Conviene sostener la rutina y compartir las prácticas del top.`
-      : `La oportunidad para superar la meta es de ${pct.format(gap ?? 0)}. Prioriza el bottom y protege el volumen de bebidas Lobby.`;
+      ? `El alcance supera la meta por ${pct.format(currentRatio - (data?.meta.target ?? .1))}. ${leader ? `${leader.label} lidera con ${pct.format(leader.ratio)}.` : ""}`
+      : `La brecha es ${pct.format(gap ?? 0)}. ${leader ? `${leader.label} marca la referencia con ${pct.format(leader.ratio)}.` : ""}`;
 
   if (error) return <main className="state-screen"><img src="assets/logo-cada-taza-cuenta.webp" alt="FHW"/><h1>No pudimos abrir el tablero</h1><p>{error}</p><button onClick={() => location.reload()}>Reintentar</button></main>;
   if (!data) return <main className="state-screen"><div className="loader"/><h1>Preparando Cada Taza Cuenta</h1><p>Validando el último corte disponible…</p></main>;
@@ -257,15 +288,21 @@ export default function Dashboard() {
           <label>Semana<select value={week} onChange={(event) => setWeek(Number(event.target.value))}>{monthWeeks.map((item) => <option key={item} value={item}>S{item}</option>)}</select></label>
           <label>Región<select value={region} onChange={(event) => changeRegion(event.target.value)}><option>Todas</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>DM<select value={dm} onChange={(event) => changeDm(event.target.value)}><option>Todos</option>{dms.map((item) => <option key={item}>{item}</option>)}</select></label>
-          {view === "store" && <label className="search-label">Tienda<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre"/></label>}
+          {view === "store" && <label className="search-label">Tienda o CeCo<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nombre o número" inputMode="search"/></label>}
         </div>
+        <nav className="scope-nav" aria-label="Alcance activo">
+          <button onClick={resetScope}>Nacional</button><span>›</span>
+          <button onClick={() => { setDm("Todos"); setView("dm"); }}>{region === "Todas" ? `${data.meta.organization.regions} regiones` : region}</button><span>›</span>
+          <button onClick={() => setView("store")}>{dm === "Todos" ? `${dms.length} DMs` : dm}</button>
+          {(region !== "Todas" || dm !== "Todos" || query) && <button className="scope-clear" onClick={resetScope}>Restablecer</button>}
+        </nav>
       </section>
 
       <section className="kpi-grid">
         <Kpi label="Cada Taza Cuenta" value={currentRatio === null ? "—" : pct.format(currentRatio)} note={currentRatio === null ? "Sin base ponderable" : `S${week} · ${score.lobby ? int.format(score.lobby) + " bebidas" : "dato directo"}`} tone={currentRatio !== null && currentRatio > data.meta.target ? "good" : "alert"}/>
         <Kpi label="FHW" value={score.fhw ? int.format(score.fhw) : "—"} note="Vajilla reutilizable"/>
         <Kpi label="Bebidas Lobby" value={score.lobby ? int.format(score.lobby) : "—"} note="Base de ponderación"/>
-        <Kpi label="Sobre objetivo" value={`${atTarget} de ${results.length}`} note={view === "store" ? "tiendas" : view === "dm" ? "distritos" : "regiones"} tone={atTarget ? "good" : "default"}/>
+        <Kpi label="Sobre objetivo" value={`${atTarget} de ${results.length}`} note={coverage ? `${coverage.publishedStores} tiendas con cruce` : view === "store" ? "tiendas" : view === "dm" ? "distritos" : "regiones"} tone={atTarget ? "good" : "default"}/>
       </section>
 
       <section className="story-card">
@@ -274,11 +311,11 @@ export default function Dashboard() {
       </section>
 
       <section className="dashboard-grid">
-        <article className="panel trend-panel"><div className="panel-head"><div><p className="eyebrow">TENDENCIA</p><h2>Ritmo semanal</h2></div><span className="formula-chip">Σ FHW / Σ Lobby</span></div><TrendChart points={trend} target={data.meta.target}/></article>
+        <article className="panel trend-panel"><div className="panel-head"><div><p className="eyebrow">TENDENCIA</p><h2>{trendRange === "year" ? "Historia 2026" : `Ritmo de ${month}`}</h2></div><div className="panel-actions"><span className="formula-chip">Σ FHW / Σ Lobby</span><div className="toggle"><button className={trendRange === "month" ? "active" : ""} onClick={() => setTrendRange("month")}>Mes</button><button className={trendRange === "year" ? "active" : ""} onClick={() => setTrendRange("year")}>Año</button></div></div></div><TrendChart points={trend} target={data.meta.target}/>{historyError && <small className="trend-status">{historyError}</small>}<div className="trend-legend"><span><i className="legend-live"/>Ponderado</span><span><i className="legend-direct"/>Histórico directo</span></div></article>
         <article className="panel ranking-panel"><div className="panel-head"><div><p className="eyebrow">ENFOQUE</p><h2>{rankingMode === "top" ? "Top desempeño" : "Bottom oportunidad"}</h2></div><div className="toggle"><button className={rankingMode === "top" ? "active" : ""} onClick={() => setRankingMode("top")}>Top</button><button className={rankingMode === "bottom" ? "active" : ""} onClick={() => setRankingMode("bottom")}>Bottom</button></div></div>{ranking.length ? <Bars items={ranking} target={data.meta.target} onSelect={drillDown}/> : <div className="empty-chart"><strong>Sin datos</strong><span>Cambia el corte.</span></div>}</article>
       </section>
 
-      <section className="panel table-panel"><div className="panel-head"><div><p className="eyebrow">DETALLE</p><h2>{view === "store" ? "Tiendas" : view === "dm" ? "Distritos" : "Regiones"} · Semana {week}</h2></div><span>{Math.min(results.length, 100)} de {results.length}</span></div><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Alcance</th><th>FHW</th><th>Bebidas Lobby</th><th>Cada Taza Cuenta</th><th>Estado</th></tr></thead><tbody>{[...results].sort((a, b) => b.ratio - a.ratio).slice(0, 100).map((item) => <tr key={item.id}><td><strong>{item.label}</strong><small>{item.detail}</small></td><td>{item.stores || "Directo"}</td><td>{item.fhw === null ? "—" : int.format(item.fhw)}</td><td>{item.lobby === null ? "—" : int.format(item.lobby)}</td><td><strong>{pct.format(item.ratio)}</strong></td><td><span className={item.ratio > data.meta.target ? "status good" : "status opportunity"}>{item.ratio > data.meta.target ? "Sobre meta" : "Oportunidad"}</span></td></tr>)}</tbody></table></div></section>
+      <section className="panel table-panel"><div className="panel-head"><div><p className="eyebrow">DETALLE</p><h2>{view === "store" ? "Tiendas" : view === "dm" ? "Distritos" : "Regiones"} · Semana {week}</h2></div><div className="table-actions"><span>{Math.min(results.length, 100)} de {results.length}</span><select value={sortMode} onChange={(event) => setSortMode(event.target.value as typeof sortMode)} aria-label="Ordenar detalle"><option value="ratio-desc">Mayor desempeño</option><option value="ratio-asc">Mayor oportunidad</option><option value="name">Nombre A–Z</option></select></div></div><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Alcance</th><th>FHW</th><th>Bebidas Lobby</th><th>Cada Taza Cuenta</th><th>Estado</th></tr></thead><tbody>{sortedResults.slice(0, 100).map((item) => <tr key={item.id}><td><strong>{item.label}</strong><small>{item.detail}</small></td><td>{item.stores || "Directo"}</td><td>{item.fhw === null ? "—" : int.format(item.fhw)}</td><td>{item.lobby === null ? "—" : int.format(item.lobby)}</td><td><strong>{pct.format(item.ratio)}</strong></td><td><span className={item.ratio > data.meta.target ? "status good" : "status opportunity"}>{item.ratio > data.meta.target ? "Sobre meta" : "Oportunidad"}</span></td></tr>)}</tbody></table></div></section>
 
       <section className="resource-grid">
         <article className="toolkit-card"><div><p className="eyebrow">KIT DE ACCIÓN</p><h2>Toolkit Cada Taza Cuenta</h2><p>Ideas listas para llevar a tienda.</p></div><a className="button solid" href="Toolkit_Cada_Taza_Cuenta.pdf" download>Descargar toolkit</a></article>

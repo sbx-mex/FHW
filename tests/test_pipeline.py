@@ -47,6 +47,22 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(self.payload["meta"]["historyFiles"])
         self.assertTrue(all(row["source"] == "calculado" for row in self.payload["records"]))
 
+    def test_operational_hierarchy_covers_every_record(self):
+        organization = self.payload["meta"]["organization"]
+        codes = {
+            store["ceco"]
+            for region in organization["hierarchy"]
+            for dm in region["dms"]
+            for store in dm["stores"]
+        }
+        self.assertEqual(len(codes), organization["stores"])
+        self.assertTrue(all(row["ceco"] in codes for row in self.records))
+
+    def test_weekly_coverage_matches_latest_cut(self):
+        coverage = {item["week"]: item for item in self.payload["meta"]["coverageByWeek"]}
+        self.assertEqual(coverage[34]["publishedStores"], self.audit["latest"]["stores"])
+        self.assertLessEqual(coverage[34]["publishedStores"], coverage[34]["matchedStores"])
+
     def test_target_is_strictly_greater_than_ten_percent(self):
         self.assertEqual(self.payload["meta"]["target"], 0.10)
         self.assertFalse(0.10 > self.payload["meta"]["target"])

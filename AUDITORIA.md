@@ -2,7 +2,7 @@
 
 ## Resultado
 
-Estado final: **24/24 controles OK**.
+Estado final: **26/26 controles técnicos y 10/10 mejoras funcionales OK**.
 
 | Frente | Antes | Versión corregida |
 | --- | --- | --- |
@@ -14,6 +14,28 @@ Estado final: **24/24 controles OK**.
 | Imágenes principales | 4.1 MB en PNG | 156 KB en WebP para interfaz |
 | Navegación | Filtros sin cambio de nivel | Región abre DM; DM abre Tienda |
 | PDF | Impresión genérica | Nombre por nivel/semana y vista ejecutiva A4 |
+
+## Diez mejoras validadas
+
+1. CI limpio: el análisis excluye `/docs` compilado.
+2. Jerarquía Región, DM y Tienda generada con Python.
+3. Ponderación exacta `SUM(FHW) / SUM(Bebidas Lobby)`.
+4. Región abre automáticamente los DMs correspondientes.
+5. DM abre automáticamente sus tiendas.
+6. Historia anual disponible bajo demanda.
+7. Gráfico dinámico con etiquetas adaptables y fuentes diferenciadas.
+8. Detalle ordenable por desempeño, oportunidad o nombre.
+9. Búsqueda por nombre de tienda o CeCo.
+10. GitHub Pages y PWA preparados para la subruta `/FHW/`.
+
+## Eliminar del repositorio
+
+Después de sustituir `/docs`, elimina los compilados de la versión anterior:
+
+- `docs/assets/dashboard-CB-i6BDg.js`
+- `docs/assets/index-BKD9UQRd.css`
+- `docs/assets/index-aNdN-lsB.js`
+- `docs/assets/layout-segment-context-CoxHG59P.js`
 
 ## Validación de información
 
