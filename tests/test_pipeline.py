@@ -57,6 +57,17 @@ class PipelineTests(unittest.TestCase):
         }
         self.assertEqual(len(codes), organization["stores"])
         self.assertTrue(all(row["ceco"] in codes for row in self.records))
+        self.assertTrue(all(
+            store.get("applies") is True
+            for region in organization["hierarchy"]
+            for dm in region["dms"]
+            for store in dm["stores"]
+        ))
+
+    def test_only_applicable_directory_is_published(self):
+        eligibility = self.payload["meta"]["eligibility"]
+        self.assertEqual(eligibility["includedStores"], self.payload["meta"]["organization"]["stores"])
+        self.assertIn("Aplica = Sí", eligibility["rule"])
 
     def test_weekly_coverage_matches_latest_cut(self):
         coverage = {item["week"]: item for item in self.payload["meta"]["coverageByWeek"]}

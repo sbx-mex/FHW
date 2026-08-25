@@ -1,28 +1,28 @@
-# Auditoría ejecutiva FHW · v1.3
+# Auditoría ejecutiva FHW · v1.4
 
-## Regla validada
+## Regla de negocio
 
 `Cada Taza Cuenta = SUM(FHW) / SUM(Bebidas Lobby)`
 
-El resultado de DM, Región y Nacional es ponderado con sus volúmenes. Nunca se promedian porcentajes de tiendas. La meta se cumple únicamente cuando el resultado es mayor a 10%.
+DM, Región y Nacional se calculan con ponderación por volumen. La meta se cumple únicamente cuando el resultado es mayor a 10%.
 
-## 10 mejoras verificables
+## Directorio
 
-1. Motor ejecutivo Python con resumen semanal precalculado.
-2. Control Python de filas inválidas, denominadores, duplicados, anomalías y cobertura.
-3. Primera vista compacta con resultado, movimiento, cobertura y semana.
-4. Gauge dinámico contra la meta mayor a 10%.
-5. Distribución visual: sobre meta, cerca y enfoque.
-6. Comparación automática contra el periodo anterior.
-7. Navegación Región → DM → Tienda y filtros persistidos en la URL.
-8. Exportación rápida a PDF y CSV del alcance activo.
-9. Tendencia anual bajo demanda y rankings interactivos Top/Bottom.
-10. Carga inicial ligera, PWA, rutas relativas y publicación GitHub Pages.
+El motor publica únicamente tiendas aplicables. Si el directorio contiene la columna `Aplica`, exige el valor `Sí`. La versión actual no contiene esa columna y utiliza `Estatus = Abierta` como equivalente operativo; las demás tiendas quedan excluidas.
+
+## Mejora visual v1.4
+
+1. Navegación jerárquica Región → DM → Tienda.
+2. Ranking nacional de regiones, regional de DMs y distrital de tiendas.
+3. Selección múltiple con casillas para Región y DM.
+4. Vista principal sin tarjetas técnicas FHW y Bebidas Lobby.
+5. Historia breve del corte con movimiento, cobertura y prioridad.
+6. Tendencia intercambiable por semanas o meses.
+7. Gráficas limpias, interactivas y sin efectos decorativos.
+8. Tabla reducida a Nombre, Cada Taza Cuenta y Estado.
+9. PDF contextual según la pestaña y alcance activos; CSV eliminado.
+10. Toolkit administrado desde `public/data/resources.json`.
 
 ## Validación
 
-Ejecutar `npm run audit`. El proceso construye datos con Python, prueba la ponderación, valida lint, genera `/docs`, prueba el HTML publicado y emite `public/data/experience-audit.json`.
-
-## Alcance histórico
-
-Semanas 1–29 conservan el porcentaje histórico entregado. Desde semana 30, el cálculo usa FHW y Bebidas Lobby. La vista histórica no inventa ponderaciones cuando la fuente no contiene numeradores y denominadores.
+Ejecutar `npm run audit`. El proceso construye con Python, prueba la ponderación y elegibilidad, valida el sitio y regenera `/docs` para GitHub Pages.

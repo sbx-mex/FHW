@@ -1,0 +1,12 @@
+{
+  "resources": [
+    {
+      "id": "toolkit-cada-taza-cuenta",
+      "category": "Kit de acción",
+      "title": "Toolkit Cada Taza Cuenta",
+      "description": "Una guía breve para convertir la lectura del tablero en acciones dentro de tienda.",
+      "file": "Toolkit_Cada_Taza_Cuenta.pdf",
+      "action": "Descargar toolkit"
+    }
+  ]
+}

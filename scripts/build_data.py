@@ -246,7 +246,8 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
             "sheet": directory_sheet.title,
             "includedStores": len(directory),
             "excludedStores": excluded,
-            "applyRule": "Aplica = Sí" if applies_i is not None else "Estatus = Abierta",
+            "applyRule": "Aplica = Sí" if applies_i is not None else "Estatus = Abierta (equivale a Aplica = Sí)",
+            "applyColumnPresent": applies_i is not None,
             "calendarWeeks": len(week_month),
             "historicalStoreRows": len(historical),
             "historicalDmRows": len(historical_dm),
@@ -318,7 +319,7 @@ def build() -> dict[str, Any]:
 
     hierarchy_map: defaultdict[str, defaultdict[str, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
     for code, item in sorted(directory.items(), key=lambda pair: (pair[1]["region"].casefold(), pair[1]["dm"].casefold(), pair[1]["store"].casefold())):
-        hierarchy_map[item["region"]][item["dm"]].append({"ceco": code, "name": item["store"]})
+        hierarchy_map[item["region"]][item["dm"]].append({"ceco": code, "name": item["store"], "applies": True})
     hierarchy = [
         {
             "name": region,
@@ -450,7 +451,7 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.3.0",
+            "version": "1.4.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,
@@ -468,6 +469,11 @@ def build() -> dict[str, Any]:
                 "dms": len({item["dm"] for item in directory.values()}),
                 "stores": len(directory),
                 "hierarchy": hierarchy,
+            },
+            "eligibility": {
+                "rule": reference_audit["applyRule"],
+                "includedStores": len(directory),
+                "excludedStores": reference_audit["excludedStores"],
             },
             "coverageByWeek": coverage_by_week,
             "executiveWeeks": executive_weeks,

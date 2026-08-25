@@ -52,6 +52,12 @@ def main() -> int:
         for store in dm_item.get("stores", [])
     }
     check("Hierarchy covers records", bool(hierarchy_cecos) and all(row["ceco"] in hierarchy_cecos for row in records), str(len(hierarchy_cecos)))
+    check("Only applicable stores", all(
+        store.get("applies") is True
+        for region_item in hierarchy
+        for dm_item in region_item.get("dms", [])
+        for store in dm_item.get("stores", [])
+    ) and "Aplica = Sí" in payload["meta"].get("eligibility", {}).get("rule", ""))
     executive_weeks = payload["meta"].get("executiveWeeks", [])
     quality = payload["meta"].get("quality", {})
     latest_summary = next((item for item in executive_weeks if item["week"] == audit["latestCompleteWeek"]), {})
@@ -62,6 +68,7 @@ def main() -> int:
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
         "Juntémonos JSON": ROOT / "public/data/juntemonos-mas.json", "Optimized logo": ROOT / "public/assets/logo-cada-taza-cuenta.webp",
+        "Resources JSON": ROOT / "public/data/resources.json",
         "Optimized background": ROOT / "public/assets/fondo-dashboard-fhw.webp",
     }.items(): check(name, path.is_file())
     build_script = (ROOT / "scripts/build-verified.sh").read_text(encoding="utf-8")
@@ -87,15 +94,15 @@ def main() -> int:
     improvements = []
     def improvement(number: int, name: str, condition: bool, detail: str):
         improvements.append({"number": number, "name": name, "status": "ok" if condition else "error", "detail": detail})
-    improvement(1, "Motor ejecutivo Python", bool(executive_weeks) and bool(latest_summary), "Python precalcula el corte semanal y sus bandas.")
-    improvement(2, "Control de calidad Python", quality.get("status") == "ok", "Valida filas, denominadores, duplicados y cobertura.")
-    improvement(3, "Primera vista ejecutiva", "executive-hero" in dashboard_source and "score-gauge" in dashboard_source, "Resultado, movimiento y cobertura aparecen sin desplazamiento.")
-    improvement(4, "Indicador visual de meta", "function ScoreGauge" in dashboard_source, "Gauge dinámico contra el objetivo >10%.")
-    improvement(5, "Distribución de acción", "function Distribution" in dashboard_source and "nearTarget" in json.dumps(payload), "Separa sobre meta, cerca y enfoque.")
-    improvement(6, "Comparación temporal", "previous=trend.filter" in dashboard_source and "Movimiento" in dashboard_source, "Muestra avance o retroceso contra el corte anterior.")
-    improvement(7, "Navegación enlazable", "URLSearchParams" in dashboard_source and "history.replaceState" in dashboard_source, "Filtros quedan en la URL para compartir la misma vista.")
-    improvement(8, "Exportación operativa", "function exportCsv" in dashboard_source and "function exportPdf" in dashboard_source, "PDF ejecutivo y CSV del filtro activo.")
-    improvement(9, "Jerarquía dinámica", 'setView("dm")' in dashboard_source and 'setView("store")' in dashboard_source, "Región muestra DMs; DM muestra tiendas.")
+    improvement(1, "Directorio aplicable", "Aplica = Sí" in payload["meta"]["eligibility"]["rule"], "Sólo publica tiendas elegibles del directorio.")
+    improvement(2, "Jerarquía automática", "selectRegions" in dashboard_source and "selectDms" in dashboard_source, "Nacional muestra regiones; Región abre DMs; DM abre tiendas.")
+    improvement(3, "Filtros con casillas", "function MultiSelect" in dashboard_source, "Región y DM permiten selección múltiple.")
+    improvement(4, "Vista ejecutiva limpia", "overview-card" in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta los KPI técnicos FHW y Bebidas Lobby.")
+    improvement(5, "Ranking por alcance", "RANKING" in dashboard_source and "rankingMode" in dashboard_source, "Ranking Top/Bottom cambia con Región, DM o Tienda.")
+    improvement(6, "Tendencia flexible", 'trendMode==="week"' in dashboard_source and "Evolución mensual" in dashboard_source, "Alterna semana a semana y meses.")
+    improvement(7, "Tabla esencial", "Cada Taza Cuenta</th><th>Estado" in dashboard_source and "Bebidas Lobby</th>" not in dashboard_source, "Detalle reducido a Nombre, resultado y estado.")
+    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportCsv" not in dashboard_source and "Exportar {pluralView(view)}" in dashboard_source, "PDF toma el nivel y filtro activos; CSV fue retirado.")
+    improvement(9, "Kit gobernado por JSON", (ROOT / "public/data/resources.json").is_file() and 'fetch("data/resources.json")' in dashboard_source, "El recurso descargable se administra desde JSON.")
     improvement(10, "Rendimiento y publicación", pages.is_file() and (ROOT / "public/sw.js").is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos.")
     errors = [item for item in checks if item["status"] != "ok"]
     improvement_errors = [item for item in improvements if item["status"] != "ok"]

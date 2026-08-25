@@ -1,20 +1,19 @@
-# Archivos corregidos · FHW v1.3
-
-Reemplaza estos archivos conservando la misma ruta:
+# FHW v1.4 · Archivos para reemplazar
 
 - `app/dashboard.tsx`
 - `app/globals.css`
 - `scripts/build_data.py`
 - `scripts/audit_project.py`
 - `tests/test_pipeline.py`
-- `tests/rendered-html.test.mjs`
-- `package.json`
-- `package-lock.json`
-- `AUDITORIA.md`
+- `public/data/resources.json`
 - `public/data/fhw-dashboard.json`
 - `public/data/data-audit.json`
 - `public/data/experience-audit.json`
+- `public/sw.js`
+- `package.json`
+- `package-lock.json`
+- `AUDITORIA.md`
 
-Para GitHub Pages, elimina primero la carpeta `docs` anterior y carga la carpeta `docs` incluida. Esto evita conservar paquetes JavaScript obsoletos con nombres hash.
+Para GitHub Pages, elimina primero la carpeta `docs` anterior y carga completa la carpeta `docs` incluida. Así no permanecen archivos JavaScript obsoletos.
 
 Validación final: `npm run audit`.

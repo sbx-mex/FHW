@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-25T07:41:16.603418+00:00",
+  "generatedAt": "2026-08-25T08:24:42.096651+00:00",
   "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
   "target": 0.1,
   "latestCompleteWeek": 34,
@@ -28,7 +28,8 @@
       "sheet": "Directorio",
       "includedStores": 942,
       "excludedStores": 26,
-      "applyRule": "Estatus = Abierta",
+      "applyRule": "Estatus = Abierta (equivale a Aplica = Sí)",
+      "applyColumnPresent": false,
       "calendarWeeks": 52,
       "historicalStoreRows": 24612,
       "historicalDmRows": 1769,

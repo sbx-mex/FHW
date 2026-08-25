@@ -1,63 +1,63 @@
 {
   "status": "ok",
-  "checksTotal": 29,
-  "checksOk": 29,
+  "checksTotal": 31,
+  "checksOk": 31,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
     {
       "number": 1,
-      "name": "Motor ejecutivo Python",
+      "name": "Directorio aplicable",
       "status": "ok",
-      "detail": "Python precalcula el corte semanal y sus bandas."
+      "detail": "Sólo publica tiendas elegibles del directorio."
     },
     {
       "number": 2,
-      "name": "Control de calidad Python",
+      "name": "Jerarquía automática",
       "status": "ok",
-      "detail": "Valida filas, denominadores, duplicados y cobertura."
+      "detail": "Nacional muestra regiones; Región abre DMs; DM abre tiendas."
     },
     {
       "number": 3,
-      "name": "Primera vista ejecutiva",
+      "name": "Filtros con casillas",
       "status": "ok",
-      "detail": "Resultado, movimiento y cobertura aparecen sin desplazamiento."
+      "detail": "Región y DM permiten selección múltiple."
     },
     {
       "number": 4,
-      "name": "Indicador visual de meta",
+      "name": "Vista ejecutiva limpia",
       "status": "ok",
-      "detail": "Gauge dinámico contra el objetivo >10%."
+      "detail": "Oculta los KPI técnicos FHW y Bebidas Lobby."
     },
     {
       "number": 5,
-      "name": "Distribución de acción",
+      "name": "Ranking por alcance",
       "status": "ok",
-      "detail": "Separa sobre meta, cerca y enfoque."
+      "detail": "Ranking Top/Bottom cambia con Región, DM o Tienda."
     },
     {
       "number": 6,
-      "name": "Comparación temporal",
+      "name": "Tendencia flexible",
       "status": "ok",
-      "detail": "Muestra avance o retroceso contra el corte anterior."
+      "detail": "Alterna semana a semana y meses."
     },
     {
       "number": 7,
-      "name": "Navegación enlazable",
+      "name": "Tabla esencial",
       "status": "ok",
-      "detail": "Filtros quedan en la URL para compartir la misma vista."
+      "detail": "Detalle reducido a Nombre, resultado y estado."
     },
     {
       "number": 8,
-      "name": "Exportación operativa",
+      "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF ejecutivo y CSV del filtro activo."
+      "detail": "PDF toma el nivel y filtro activos; CSV fue retirado."
     },
     {
       "number": 9,
-      "name": "Jerarquía dinámica",
+      "name": "Kit gobernado por JSON",
       "status": "ok",
-      "detail": "Región muestra DMs; DM muestra tiendas."
+      "detail": "El recurso descargable se administra desde JSON."
     },
     {
       "number": 10,
