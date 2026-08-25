@@ -1,0 +1,63 @@
+name: Publicar FHW limpio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "input/**"
+      - "public/**"
+      - "scripts/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+
+concurrency:
+  group: fhw-pages-clean
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Normalizar scripts Linux
+        run: chmod +x scripts/*.sh
+      - name: Reconstruir datos y eliminar históricos obsoletos
+        run: python scripts/build_data.py
+      - name: Validar antes de publicar
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Regenerar docs desde cero
+        run: npm run pages
+      - name: Auditar proyecto limpio
+        run: python scripts/audit_project.py
+      - name: Publicar sólo salidas vigentes
+        run: |
+          git add -A docs public/data
+          if git diff --cached --quiet; then
+            echo "Sin cambios generados."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Actualiza dashboard FHW y elimina salidas obsoletas"
+          git push
