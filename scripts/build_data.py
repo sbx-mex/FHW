@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import unicodedata
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -359,7 +360,7 @@ def build() -> dict[str, Any]:
             "source": "histórico directo",
         })
 
-    records = sorted(historical_records + live_records, key=lambda item: (item["week"], item["store"].casefold()))
+    all_records = sorted(historical_records + live_records, key=lambda item: (item["week"], item["store"].casefold()))
     live_weeks = sorted({item["week"] for item in live_records})
     latest_week = max(live_weeks) if live_weeks else 0
     latest = [item for item in live_records if item["week"] == latest_week]
@@ -401,14 +402,35 @@ def build() -> dict[str, Any]:
             "target": TARGET,
             "latestCompleteWeek": latest_week,
             "formula": audit["formula"],
-            "weeks": sorted({item["week"] for item in records}),
-            "months": [month for month in MONTHS if month in {item["month"] for item in records}],
+            "weeks": sorted({item["week"] for item in all_records}),
+            "months": [month for month in MONTHS if month in {item["month"] for item in all_records}],
+            "monthWeeks": {
+                month: sorted({item["week"] for item in all_records if item["month"] == month})
+                for month in MONTHS if any(item["month"] == month for item in all_records)
+            },
+            "historyFiles": {},
             "latestStores": len(latest),
         },
-        "records": records,
-        "historicalDm": historical_dm,
+        "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),
+        "historicalDm": [],
     }
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    history_output = OUTPUT / "history"
+    if history_output.exists():
+        shutil.rmtree(history_output)
+    history_output.mkdir(parents=True)
+    for month in payload["meta"]["months"]:
+        month_records = [item for item in historical_records if item["month"] == month]
+        if not month_records:
+            continue
+        weeks = {item["week"] for item in month_records}
+        month_dm = [item for item in historical_dm if item["week"] in weeks]
+        filename = f"{month.casefold()}.json"
+        payload["meta"]["historyFiles"][month] = f"data/history/{filename}"
+        (history_output / filename).write_text(
+            json.dumps({"records": month_records, "historicalDm": month_dm}, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
     (OUTPUT / "fhw-dashboard.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUTPUT / "data-audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     return audit

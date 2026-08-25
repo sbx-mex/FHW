@@ -14,6 +14,10 @@ class PipelineTests(unittest.TestCase):
         build_data.build()
         cls.audit = json.loads((ROOT / "public/data/data-audit.json").read_text(encoding="utf-8"))
         cls.payload = json.loads((ROOT / "public/data/fhw-dashboard.json").read_text(encoding="utf-8"))
+        cls.records = list(cls.payload["records"])
+        for filename in cls.payload["meta"]["historyFiles"].values():
+            history = json.loads((ROOT / "public" / filename).read_text(encoding="utf-8"))
+            cls.records.extend(history["records"])
 
     def test_example_38101_week_30(self):
         row = self.audit["example38101w30"]
@@ -23,19 +27,25 @@ class PipelineTests(unittest.TestCase):
 
     def test_latest_complete_week(self):
         self.assertEqual(self.audit["latestCompleteWeek"], 34)
-        live_weeks = {row["week"] for row in self.payload["records"] if row["source"] == "calculado"}
+        live_weeks = {row["week"] for row in self.records if row["source"] == "calculado"}
         self.assertEqual(live_weeks, {30, 31, 32, 33, 34})
 
     def test_weighted_latest_ratio(self):
-        rows = [row for row in self.payload["records"] if row["week"] == 34 and row["source"] == "calculado"]
+        rows = [row for row in self.records if row["week"] == 34 and row["source"] == "calculado"]
         expected = sum(row["fhw"] for row in rows) / sum(row["lobby"] for row in rows)
         self.assertAlmostEqual(expected, self.audit["latest"]["weightedRatio"], places=8)
         self.assertAlmostEqual(expected, 148385 / 2106853, places=8)
 
     def test_records_are_unique_and_named(self):
-        keys = [(row["ceco"], row["week"]) for row in self.payload["records"]]
+        keys = [(row["ceco"], row["week"]) for row in self.records]
         self.assertEqual(len(keys), len(set(keys)))
-        self.assertTrue(all(row["store"].strip() for row in self.payload["records"]))
+        self.assertTrue(all(row["store"].strip() for row in self.records))
+
+    def test_initial_payload_is_optimized(self):
+        main_file = ROOT / "public/data/fhw-dashboard.json"
+        self.assertLess(main_file.stat().st_size, 2 * 1024 * 1024)
+        self.assertTrue(self.payload["meta"]["historyFiles"])
+        self.assertTrue(all(row["source"] == "calculado" for row in self.payload["records"]))
 
     def test_target_is_strictly_greater_than_ten_percent(self):
         self.assertEqual(self.payload["meta"]["target"], 0.10)

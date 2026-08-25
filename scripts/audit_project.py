@@ -14,6 +14,15 @@ MAX_ENTRIES = 100
 def main() -> int:
     payload = json.loads((ROOT / "public/data/fhw-dashboard.json").read_text(encoding="utf-8"))
     audit = json.loads((ROOT / "public/data/data-audit.json").read_text(encoding="utf-8"))
+    records = list(payload["records"])
+    history_files = payload.get("meta", {}).get("historyFiles", {})
+    history_payloads = []
+    for filename in history_files.values():
+        history_path = ROOT / "public" / filename
+        if history_path.is_file():
+            history = json.loads(history_path.read_text(encoding="utf-8"))
+            history_payloads.append(history)
+            records.extend(history.get("records", []))
     checks = []
     def check(name: str, condition: bool, detail: str = ""):
         checks.append({"name": name, "status": "ok" if condition else "error", "detail": detail})
@@ -24,13 +33,24 @@ def main() -> int:
     check("Live rows", audit["joins"]["publishedLiveRows"] > 4000, str(audit["joins"]["publishedLiveRows"]))
     check("Historical rows", audit["joins"]["publishedHistoricalRows"] > 20000, str(audit["joins"]["publishedHistoricalRows"]))
     check("No zero denominators", audit["joins"]["zeroDenominator"] == 0)
-    check("Unique records", len(payload["records"]) == len({(row["ceco"], row["week"]) for row in payload["records"]}))
-    check("Store names", all(row["store"].strip() for row in payload["records"]))
+    check("Unique records", len(records) == len({(row["ceco"], row["week"]) for row in records}))
+    check("Store names", all(row["store"].strip() for row in records))
+    check("Historical split", bool(history_files) and len(history_payloads) == len(history_files), str(len(history_files)))
+    check("Fast initial payload", (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024)
+    check("All rows published", len(records) == audit["joins"]["publishedLiveRows"] + audit["joins"]["publishedHistoricalRows"], str(len(records)))
     for name, path in {
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
-        "Juntémonos JSON": ROOT / "public/data/juntemonos-mas.json",
+        "Juntémonos JSON": ROOT / "public/data/juntemonos-mas.json", "Optimized logo": ROOT / "public/assets/logo-cada-taza-cuenta.webp",
+        "Optimized background": ROOT / "public/assets/fondo-dashboard-fhw.webp",
     }.items(): check(name, path.is_file())
+    build_script = (ROOT / "scripts/build-verified.sh").read_text(encoding="utf-8")
+    check("Permission-independent build", 'exec bash "${script_dir}/sites-env.sh"' in build_script)
+    pages = ROOT / "docs/index.html"
+    check("GitHub Pages index", pages.is_file())
+    if pages.is_file():
+        pages_html = pages.read_text(encoding="utf-8")
+        check("GitHub Pages relative assets", '="/assets/' not in pages_html)
     oversize_files, folder_violations = [], []
     folders = [ROOT] + [item for item in ROOT.rglob("*") if item.is_dir() and not any(part in EXCLUDED for part in item.relative_to(ROOT).parts)]
     for folder in folders:

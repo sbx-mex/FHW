@@ -38,6 +38,16 @@ npm run build
 
 La salida web se genera en `public/data/fhw-dashboard.json` y la reconciliación en `public/data/data-audit.json`.
 
+El histórico se divide por mes en `public/data/history/`; así el tablero abre con menos de 1 MB y sólo descarga el mes solicitado.
+
+## Publicación en GitHub Pages
+
+```bash
+npm run pages
+```
+
+La versión lista para publicar queda en `docs/`. En **Settings → Pages**, selecciona `Deploy from a branch`, rama `main` y carpeta `/docs`.
+
 ## Archivos de entrada
 
 | Archivo | Uso |

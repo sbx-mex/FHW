@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FHW · Cada Taza Cuenta",
     description: "Más experiencias. Menos desechables.",
-    images: ["/assets/fondo-dashboard-fhw.png"],
+    images: ["/assets/fondo-dashboard-fhw.webp"],
   },
 };
 

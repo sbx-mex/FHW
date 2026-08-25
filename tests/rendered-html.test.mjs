@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 
 test("renders FHW metadata", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -12,4 +13,11 @@ test("renders FHW metadata", async () => {
   assert.match(html, /FHW · Cada Taza Cuenta/);
   assert.match(html, /manifest\.webmanifest/);
   assert.doesNotMatch(html, /Starter Project|codex-preview/);
+});
+
+test("publishes a relative GitHub Pages entry", async () => {
+  const html = await readFile(new URL("../docs/index.html", import.meta.url), "utf8");
+  assert.match(html, /FHW · Cada Taza Cuenta/);
+  assert.doesNotMatch(html, /="\/assets\//);
+  assert.match(html, /="\.\/assets\//);
 });
