@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Normalizar scripts Linux
+        run: chmod +x scripts/*.sh
       - uses: actions/setup-python@v5
         with: {python-version: "3.13", cache: pip}
       - run: pip install -r requirements.txt
@@ -19,5 +21,7 @@ jobs:
       - run: npm ci
       - run: python scripts/build_data.py
       - run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - run: npm run lint
+      - run: npm run pages
+      - run: node --test tests/rendered-html.test.mjs
       - run: python scripts/audit_project.py
-      - run: npm test
