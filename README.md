@@ -14,9 +14,9 @@ FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región e
 ## Alcance de la versión 1
 
 - Pestañas **Tienda**, **DM** y **Región**.
-- Filtros por Mes, Semana, Región, DM y nombre de tienda.
+- Selección múltiple para Mes y Semana; Región y DM son filtros únicos encadenados.
 - KPIs ponderados, tendencia, lectura ejecutiva, Top y Bottom.
-- Histórico directo de semanas 1–29 y cálculo automático desde semana 30.
+- Histórico directo de semanas 1–29 y ponderación exacta desde semana 30.
 - Semana incompleta protegida: sólo se publica cuando existen FHW y Bebidas Lobby.
 - Vista lista para **Descargar PDF** mediante el diálogo de impresión.
 - Descarga del `Toolkit_Cada_Taza_Cuenta.pdf`.
@@ -38,7 +38,7 @@ npm run build
 
 La salida web se genera en `public/data/fhw-dashboard.json` y la reconciliación en `public/data/data-audit.json`.
 
-El histórico se divide por mes en `public/data/history/`; así el tablero abre con menos de 1 MB y sólo descarga el mes solicitado.
+El histórico se divide por mes en `public/data/history/`; así el tablero abre rápido y sólo descarga los meses seleccionados.
 
 ## Publicación en GitHub Pages
 

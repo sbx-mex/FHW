@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-25T08:24:42.096651+00:00",
+  "generatedAt": "2026-08-25T08:59:57.514807+00:00",
   "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
   "target": 0.1,
   "latestCompleteWeek": 34,

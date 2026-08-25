@@ -420,6 +420,25 @@ def build() -> dict[str, Any]:
         "latestCoverage": round(len(latest) / len(directory), 8) if directory else 0,
     }
 
+    # Rollups exactos para navegación ejecutiva. Cada nivel vuelve a sumar los
+    # numeradores y denominadores del CSV; nunca deriva de porcentajes hijos.
+    weekly_rollups: dict[str, list[dict[str, Any]]] = {"region": [], "dm": []}
+    for level in ("region", "dm"):
+        grouped: defaultdict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
+        for item in live_records:
+            grouped[(item["week"], item[level])].append(item)
+        for (item_week, name), items in sorted(grouped.items()):
+            rollup_fhw = sum(item["fhw"] for item in items)
+            rollup_lobby = sum(item["lobby"] for item in items)
+            weekly_rollups[level].append({
+                "week": item_week,
+                "name": name,
+                "fhw": round(rollup_fhw, 6),
+                "lobby": round(rollup_lobby, 6),
+                "ratio": round(rollup_fhw / rollup_lobby, 8),
+                "stores": len({item["ceco"] for item in items}),
+            })
+
     example = next((item for item in live_records if item["ceco"] == "38101" and item["week"] == 30), None)
     audit = {
         "status": "ok",
@@ -451,7 +470,7 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.4.0",
+            "version": "1.5.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,
@@ -463,6 +482,9 @@ def build() -> dict[str, Any]:
                 for month in MONTHS if any(item["month"] == month for item in all_records)
             },
             "historyFiles": {},
+            "weeksWithWeightedInputs": live_weeks,
+            "weeksDirectOnly": sorted({item["week"] for item in historical_records}),
+            "historyPolicy": "Semanas 1-29 conservan el porcentaje directo; semanas 30+ usan SUM(FHW) / SUM(Bebidas Lobby).",
             "latestStores": len(latest),
             "organization": {
                 "regions": len(hierarchy),
@@ -477,6 +499,7 @@ def build() -> dict[str, Any]:
             },
             "coverageByWeek": coverage_by_week,
             "executiveWeeks": executive_weeks,
+            "weeklyRollups": weekly_rollups,
             "quality": quality,
         },
         "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),

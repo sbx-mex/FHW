@@ -64,6 +64,10 @@ def main() -> int:
     check("Python executive summary", bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["weightedRatio"]) < 1e-8)
     check("Python quality gate", quality.get("status") == "ok" and quality.get("invalidSourceRows") == 0 and quality.get("zeroDenominatorRows") == 0)
     check("Performance bands reconcile", bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1))
+    check("Eleven regions", payload["meta"]["organization"]["regions"] == 11, str(payload["meta"]["organization"]["regions"]))
+    rollups = payload["meta"].get("weeklyRollups", {})
+    rollup_rows = rollups.get("region", []) + rollups.get("dm", [])
+    check("Python weighted rollups", bool(rollup_rows) and all(item["lobby"] > 0 and abs(item["ratio"] - item["fhw"] / item["lobby"]) < 1e-8 for item in rollup_rows))
     for name, path in {
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
@@ -95,13 +99,13 @@ def main() -> int:
     def improvement(number: int, name: str, condition: bool, detail: str):
         improvements.append({"number": number, "name": name, "status": "ok" if condition else "error", "detail": detail})
     improvement(1, "Directorio aplicable", "Aplica = Sí" in payload["meta"]["eligibility"]["rule"], "Sólo publica tiendas elegibles del directorio.")
-    improvement(2, "Jerarquía automática", "selectRegions" in dashboard_source and "selectDms" in dashboard_source, "Nacional muestra regiones; Región abre DMs; DM abre tiendas.")
-    improvement(3, "Filtros con casillas", "function MultiSelect" in dashboard_source, "Región y DM permiten selección múltiple.")
+    improvement(2, "Jerarquía automática", "selectRegion" in dashboard_source and "selectDm" in dashboard_source, "Nacional muestra 11 regiones; Región abre DMs; DM abre tiendas.")
+    improvement(3, "Periodo múltiple", "function PeriodSelect" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source, "Sólo Mes y Semana permiten selección múltiple.")
     improvement(4, "Vista ejecutiva limpia", "overview-card" in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta los KPI técnicos FHW y Bebidas Lobby.")
     improvement(5, "Ranking por alcance", "RANKING" in dashboard_source and "rankingMode" in dashboard_source, "Ranking Top/Bottom cambia con Región, DM o Tienda.")
-    improvement(6, "Tendencia flexible", 'trendMode==="week"' in dashboard_source and "Evolución mensual" in dashboard_source, "Alterna semana a semana y meses.")
-    improvement(7, "Tabla esencial", "Cada Taza Cuenta</th><th>Estado" in dashboard_source and "Bebidas Lobby</th>" not in dashboard_source, "Detalle reducido a Nombre, resultado y estado.")
-    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportCsv" not in dashboard_source and "Exportar {pluralView(view)}" in dashboard_source, "PDF toma el nivel y filtro activos; CSV fue retirado.")
+    improvement(6, "Tendencia flexible", 'trendMode==="week"' in dashboard_source and "Evolución mensual" in dashboard_source and "activeWeeks" in dashboard_source, "Alterna semana a semana y meses según el periodo elegido.")
+    improvement(7, "Sin tabla redundante", "<table" not in dashboard_source and "Vacante</" not in dashboard_source, "Retira la tabla duplicada y evita publicar Vacante como tienda.")
+    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportCsv" not in dashboard_source and "PDF · {pluralView(view)}" in dashboard_source, "PDF toma nivel, alcance y semanas activas; CSV fue retirado.")
     improvement(9, "Kit gobernado por JSON", (ROOT / "public/data/resources.json").is_file() and 'fetch("data/resources.json")' in dashboard_source, "El recurso descargable se administra desde JSON.")
     improvement(10, "Rendimiento y publicación", pages.is_file() and (ROOT / "public/sw.js").is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos.")
     errors = [item for item in checks if item["status"] != "ok"]

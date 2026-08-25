@@ -1,4 +1,4 @@
-# FHW v1.4 · Archivos para reemplazar
+# FHW v1.5 · Archivos para reemplazar
 
 - `app/dashboard.tsx`
 - `app/globals.css`
@@ -13,6 +13,7 @@
 - `package.json`
 - `package-lock.json`
 - `AUDITORIA.md`
+- `README.md`
 
 Para GitHub Pages, elimina primero la carpeta `docs` anterior y carga completa la carpeta `docs` incluida. Así no permanecen archivos JavaScript obsoletos.
 

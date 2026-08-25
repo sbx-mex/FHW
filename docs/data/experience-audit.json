@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "checksTotal": 31,
-  "checksOk": 31,
+  "checksTotal": 33,
+  "checksOk": 33,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
@@ -15,13 +15,13 @@
       "number": 2,
       "name": "Jerarquía automática",
       "status": "ok",
-      "detail": "Nacional muestra regiones; Región abre DMs; DM abre tiendas."
+      "detail": "Nacional muestra 11 regiones; Región abre DMs; DM abre tiendas."
     },
     {
       "number": 3,
-      "name": "Filtros con casillas",
+      "name": "Periodo múltiple",
       "status": "ok",
-      "detail": "Región y DM permiten selección múltiple."
+      "detail": "Sólo Mes y Semana permiten selección múltiple."
     },
     {
       "number": 4,
@@ -39,19 +39,19 @@
       "number": 6,
       "name": "Tendencia flexible",
       "status": "ok",
-      "detail": "Alterna semana a semana y meses."
+      "detail": "Alterna semana a semana y meses según el periodo elegido."
     },
     {
       "number": 7,
-      "name": "Tabla esencial",
+      "name": "Sin tabla redundante",
       "status": "ok",
-      "detail": "Detalle reducido a Nombre, resultado y estado."
+      "detail": "Retira la tabla duplicada y evita publicar Vacante como tienda."
     },
     {
       "number": 8,
       "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF toma el nivel y filtro activos; CSV fue retirado."
+      "detail": "PDF toma nivel, alcance y semanas activas; CSV fue retirado."
     },
     {
       "number": 9,

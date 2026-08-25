@@ -93,6 +93,26 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(quality["zeroDenominatorRows"], 0)
         self.assertAlmostEqual(quality["latestCoverage"], self.audit["latest"]["stores"] / self.payload["meta"]["organization"]["stores"], places=8)
 
+    def test_all_eleven_regions_are_available(self):
+        organization = self.payload["meta"]["organization"]
+        self.assertEqual(organization["regions"], 11)
+        self.assertEqual(len(organization["hierarchy"]), 11)
+
+    def test_python_rollups_are_weighted_from_amounts(self):
+        rollups = self.payload["meta"]["weeklyRollups"]
+        self.assertTrue(rollups["region"])
+        self.assertTrue(rollups["dm"])
+        for item in rollups["region"] + rollups["dm"]:
+            self.assertGreater(item["lobby"], 0)
+            self.assertAlmostEqual(item["ratio"], item["fhw"] / item["lobby"], places=8)
+
+    def test_multiweek_weighting_is_not_an_average_of_percentages(self):
+        rows = [row for row in self.records if row["week"] in {30, 31, 32, 33, 34} and row["source"] == "calculado"]
+        weighted = sum(row["fhw"] for row in rows) / sum(row["lobby"] for row in rows)
+        simple_average = sum(row["ratio"] for row in rows) / len(rows)
+        self.assertNotAlmostEqual(weighted, simple_average, places=5)
+        self.assertGreater(weighted, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
