@@ -1,4 +1,4 @@
-const CACHE = "fhw-v9";
+const CACHE = "fhw-v10";
 const CORE = ["./", "./manifest.webmanifest", "./data/fhw-dashboard.json", "./data/resources.json", "./data/juntemonos-mas.json", "./assets/logo-cada-taza-cuenta.webp", "./assets/damos-seguimiento.webp", "./assets/un-placer-haber-ayudado.webp", "./Toolkit_Cada_Taza_Cuenta.pdf"];
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting())));
 self.addEventListener("activate", (event) => event.waitUntil(Promise.all([

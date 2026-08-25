@@ -43,15 +43,15 @@
     },
     {
       "number": 7,
-      "name": "Ranking por alcance",
+      "name": "Listado por alcance",
       "status": "ok",
-      "detail": "Nacional muestra 11 regiones; Región 5 Top/Bottom DMs y DM 3 Top/Bottom tiendas."
+      "detail": "El PDF muestra la tendencia y el listado completo del alcance: 11 regiones, todos los DMs o todas las tiendas."
     },
     {
       "number": 8,
-      "name": "Exportación contextual",
+      "name": "Exportación directa",
       "status": "ok",
-      "detail": "PDF horizontal de una hoja y Excel con Dashboard, Detalle y Tendencia."
+      "detail": "PDF horizontal y Excel XLSX se descargan directo; al finalizar sólo queda Cerrar."
     },
     {
       "number": 9,
