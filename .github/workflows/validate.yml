@@ -25,3 +25,6 @@ jobs:
       - run: npm run pages
       - run: node --test tests/rendered-html.test.mjs
       - run: python scripts/audit_project.py
+      - name: Resumen de auditoría
+        if: always()
+        run: cat public/data/experience-audit.json 2>/dev/null || true
