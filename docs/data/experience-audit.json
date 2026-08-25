@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "checksTotal": 38,
-  "checksOk": 38,
+  "checksTotal": 39,
+  "checksOk": 39,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
@@ -45,7 +45,7 @@
       "number": 7,
       "name": "Listado por alcance",
       "status": "ok",
-      "detail": "El PDF muestra la tendencia y el listado completo del alcance: 11 regiones, todos los DMs o todas las tiendas."
+      "detail": "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas."
     },
     {
       "number": 8,
@@ -61,9 +61,9 @@
     },
     {
       "number": 10,
-      "name": "Publicación rápida",
+      "name": "PDF legible por periodo",
       "status": "ok",
-      "detail": "Carga inicial menor a 2 MB y salida relativa para GitHub Pages."
+      "detail": "Python protege el diseño: el PDF resume rangos amplios con inicio–fin, limita etiquetas de gráfica e integra la revisión amable."
     }
   ],
   "errors": []
