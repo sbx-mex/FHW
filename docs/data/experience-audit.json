@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "checksTotal": 36,
-  "checksOk": 36,
+  "checksTotal": 38,
+  "checksOk": 38,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
@@ -45,13 +45,13 @@
       "number": 7,
       "name": "Ranking por alcance",
       "status": "ok",
-      "detail": "Muestra 11 regiones o hasta 9 DMs sin una lista interna recortada."
+      "detail": "Nacional muestra 11 regiones; Región 5 Top/Bottom DMs y DM 3 Top/Bottom tiendas."
     },
     {
       "number": 8,
       "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF de una hoja y Excel con Dashboard, Detalle y Tendencia."
+      "detail": "PDF horizontal de una hoja y Excel con Dashboard, Detalle y Tendencia."
     },
     {
       "number": 9,
