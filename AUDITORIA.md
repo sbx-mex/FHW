@@ -1,16 +1,16 @@
-# Auditoría ejecutiva FHW · v1.10
+# Auditoría ejecutiva FHW · v1.11
 
 ## Regla de negocio
 
 `Cada Taza Cuenta = promedio por tienda de (FHW / Bebidas Lobby)`
 
-DM, Región y Nacional se calculan con ponderación por volumen. La meta se cumple únicamente cuando el resultado es mayor a 10%.
+DM, Región y Nacional muestran el promedio de los porcentajes por tienda. La meta se cumple únicamente cuando el resultado es mayor a 10%.
 
 ## Directorio
 
 El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio operativo y organiza 11 regiones.
 
-## Mejora de exportación v1.10
+## Mejora de exportación v1.11
 
 1. Navegación compacta `Región | DM | Tienda`.
 2. Ranking nacional completo de las 11 regiones; una Región abre sus DMs y un DM abre sus tiendas.
@@ -21,11 +21,11 @@ El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio o
 7. Gráficas limpias, interactivas y sin efectos decorativos.
 8. Tabla redundante eliminada; Tienda siempre muestra `Nombre · CeCo`.
 9. Descarga contextual con confirmación cálida: PDF horizontal directo y Excel XLSX visual; al terminar sólo queda Cerrar.
-10. PDF sin listas recortadas ni duplicadas: Nacional muestra sus 11 regiones, Región sus DMs y DM sus tiendas, siempre en función del periodo.
+10. PDF de una hoja sin amontonamientos: periodos amplios se expresan como Inicio–Fin, la gráfica limita sus etiquetas y el listado se distribuye en columnas según el alcance.
 
 ## Histórico y ponderación
 
-Semanas 30–34 se calculan con los CSV operativos y permiten ponderación exacta para una o varias semanas: `ΣFHW / ΣBebidas Lobby`. Semanas 1–29 conservan el porcentaje directo recibido. Para contar una historia comparable enero–agosto, el histórico muestra la proporción real de tiendas por encima de 10%; no se fabrican numeradores ni denominadores ausentes.
+Semanas 30–34 se calculan con los CSV operativos por tienda: `FHW / Bebidas Lobby`. Semanas 1–29 conservan el porcentaje directo recibido. Todos los alcances muestran el promedio de los porcentajes de sus tiendas; no se suman porcentajes ni se fabrican numeradores o denominadores ausentes.
 
 ## Validación
 

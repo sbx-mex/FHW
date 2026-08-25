@@ -1,6 +1,6 @@
 {
   "name": "fhw-cada-taza-cuenta",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
