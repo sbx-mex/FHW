@@ -1,16 +1,17 @@
-# FHW v1.8 · Archivos para reemplazar
+# FHW v1.9 · Archivos para reemplazar
 
 Reemplaza únicamente estos archivos conservando sus rutas:
 
 - `app/dashboard.tsx`
 - `app/xlsx-report.ts`
-- `app/layout.tsx`
 - `app/premium.css`
-- `scripts/build_data.py`
 - `scripts/audit_project.py`
 - `package.json`
 - `package-lock.json`
 - `public/sw.js`
+- `public/assets/damos-seguimiento.webp`
+- `public/assets/un-placer-haber-ayudado.webp`
+- `public/data/juntemonos-mas.json`
 - `AUDITORIA.md`
 - `README.md`
 - `ARCHIVOS_CORREGIDOS.md`

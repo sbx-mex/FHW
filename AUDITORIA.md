@@ -1,4 +1,4 @@
-# Auditoría ejecutiva FHW · v1.8
+# Auditoría ejecutiva FHW · v1.9
 
 ## Regla de negocio
 
@@ -10,7 +10,7 @@ DM, Región y Nacional se calculan con ponderación por volumen. La meta se cump
 
 El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio operativo y organiza 11 regiones.
 
-## Mejora visual v1.8
+## Mejora visual v1.9
 
 1. Navegación compacta `Región | DM | Tienda`.
 2. Ranking nacional completo de las 11 regiones; una Región abre sus DMs y un DM abre sus tiendas.
@@ -20,8 +20,8 @@ El motor publica únicamente las 889 tiendas con `Aplica = Sí` del directorio o
 6. Tendencia enero–agosto intercambiable por semanas o meses.
 7. Gráficas limpias, interactivas y sin efectos decorativos.
 8. Tabla redundante eliminada; Tienda siempre muestra `Nombre · CeCo`.
-9. Descarga contextual reubicada junto a filtros: PDF ejecutivo y Excel XLSX visual; CSV eliminado.
-10. Toolkit administrado desde `public/data/resources.json`.
+9. Descarga contextual con confirmación cálida, PDF horizontal de una hoja y Excel XLSX visual; CSV eliminado.
+10. PDF sin listas recortadas: Nacional muestra 11 regiones, Región 5 Top/Bottom de DMs y DM 3 Top/Bottom de tiendas.
 
 ## Histórico y ponderación
 
@@ -29,4 +29,4 @@ Semanas 30–34 se calculan con los CSV operativos y permiten ponderación exact
 
 ## Validación
 
-Ejecutar `npm run audit`. Resultado validado: 33/33 controles, 10/10 mejoras, 15 pruebas Python, 3 pruebas web y apertura comprobada del XLSX con `openpyxl`.
+Ejecutar `npm test && npm run lint && python3 scripts/audit_project.py`.

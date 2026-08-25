@@ -11,14 +11,14 @@ Objetivo: mayor a 10%
 
 FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región el porcentaje siempre se recalcula con las sumas de sus tiendas; nunca se usa un promedio de porcentajes.
 
-## Alcance de la versión 1.6
+## Alcance de la versión 1.9
 
 - Pestañas **Tienda**, **DM** y **Región**.
 - Mes y Semana visibles como filtros rápidos de selección múltiple; Región y DM son filtros únicos encadenados.
 - Promedio por tienda, tendencia, lectura ejecutiva, Top y Bottom.
 - Tendencia completa enero–agosto: adopción por tienda en semanas 1–29 y ponderación exacta desde semana 30.
 - Semana incompleta protegida: sólo se publica cuando existen FHW y Bebidas Lobby.
-- Menú contextual **Descargar** con PDF ejecutivo de una página y Excel XLSX con hojas `Dashboard` y `Detalle`.
+- Menú **Descargar** con confirmación, PDF ejecutivo horizontal de una página y Excel XLSX con hojas `Dashboard`, `Detalle` y `Tendencia`.
 - Descarga del `Toolkit_Cada_Taza_Cuenta.pdf`.
 - PWA instalable y lectura en caché.
 - Auditoría JSON, pruebas unitarias y validación automática en GitHub Actions.
@@ -87,6 +87,6 @@ La solución combina la lectura ejecutiva y auditoría determinista de `Foco2026
 
 ## Créditos
 
-Jesus Alfredo Lopez Ramirez & Enrique César Flores · Gerente de Distrito.
+Diseñado por Jesus Alfredo Lopez Ramirez & Enrique César Flores.
 
 La información publicada es propiedad de la marca y está prohibida su divulgación.

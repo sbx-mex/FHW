@@ -87,6 +87,8 @@ def main() -> int:
         "Juntémonos JSON": ROOT / "public/data/juntemonos-mas.json", "Optimized logo": ROOT / "public/assets/logo-cada-taza-cuenta.webp",
         "Resources JSON": ROOT / "public/data/resources.json",
         "Optimized background": ROOT / "public/assets/fondo-dashboard-fhw.webp",
+        "Export confirmation image": ROOT / "public/assets/damos-seguimiento.webp",
+        "Export success image": ROOT / "public/assets/un-placer-haber-ayudado.webp",
     }.items(): check(name, path.is_file())
     build_script = (ROOT / "scripts/build-verified.sh").read_text(encoding="utf-8")
     check("Permission-independent build", 'exec bash "${script_dir}/sites-env.sh"' in build_script)
@@ -118,8 +120,8 @@ def main() -> int:
     improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–29 promedian el porcentaje directo por tienda sin valores exagerados.")
     improvement(5, "Filtros rápidos", "function MultiSelect" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source and "Aplicar y cerrar" in dashboard_source, "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples.")
     improvement(6, "Interfaz simplificada", "Histórico</button>" not in dashboard_source and "Ponderado</button>" not in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta términos técnicos y deja sólo Semana o Mes.")
-    improvement(7, "Ranking por alcance", "compact-grid" in dashboard_source and "Top desempeño" in dashboard_source and "Bottom · oportunidad" in dashboard_source, "Muestra 11 regiones o hasta 9 DMs sin una lista interna recortada.")
-    improvement(8, "Exportación contextual", "function exportPdf" in dashboard_source and "function exportXlsx" in dashboard_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF de una hoja y Excel con Dashboard, Detalle y Tendencia.")
+    improvement(7, "Ranking por alcance", "PrintRanking" in dashboard_source and "pdfLimit" in dashboard_source and "11 regiones" in dashboard_source, "Nacional muestra 11 regiones; Región 5 Top/Bottom DMs y DM 3 Top/Bottom tiendas.")
+    improvement(8, "Exportación contextual", "ExportDialog" in dashboard_source and "exportStem" in dashboard_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal de una hoja y Excel con Dashboard, Detalle y Tendencia.")
     improvement(9, "Responsive y PWA", (ROOT / "public/manifest.webmanifest").is_file() and (ROOT / "public/sw.js").is_file() and "safe-area-inset" in (ROOT / "app/mobile.css").read_text(encoding="utf-8"), "Navegación táctil y área segura para iOS/Android.")
     improvement(10, "Publicación rápida", pages.is_file() and '="/assets/' not in pages_html and (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024, "Carga inicial menor a 2 MB y salida relativa para GitHub Pages.")
     errors = [item for item in checks if item["status"] != "ok"]
