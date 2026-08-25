@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-25T09:25:50.459065+00:00",
-  "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
+  "generatedAt": "2026-08-25T09:58:13.832448+00:00",
+  "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 34,
   "sources": {
@@ -42,7 +42,7 @@
     "liveKeysLobby": 4695,
     "intersectedKeys": 4455,
     "publishedLiveRows": 4255,
-    "publishedHistoricalRows": 24696,
+    "publishedHistoricalRows": 24693,
     "excludedNoApplicableDirectory": 200,
     "zeroDenominator": 0
   },
@@ -50,7 +50,7 @@
     "stores": 850,
     "fhw": 147753.0,
     "lobby": 1941463.0,
-    "weightedRatio": 0.07610395,
+    "averageRatio": 0.08185579,
     "storesAtTarget": 251
   },
   "quality": {
@@ -60,7 +60,72 @@
     "zeroDenominatorRows": 0,
     "extremeRatiosFlagged": 0,
     "lowVolumeRowsFlagged": 0,
-    "latestCoverage": 0.95613048
+    "latestCoverage": 0.95613048,
+    "pendingWeeks": [
+      35
+    ],
+    "synchronization": [
+      {
+        "week": 30,
+        "status": "ready",
+        "fhwStores": 894,
+        "lobbyStores": 940,
+        "matchedStores": 894,
+        "onlyFhw": 0,
+        "onlyLobby": 46,
+        "matchRate": 0.95106383
+      },
+      {
+        "week": 31,
+        "status": "ready",
+        "fhwStores": 886,
+        "lobbyStores": 938,
+        "matchedStores": 886,
+        "onlyFhw": 0,
+        "onlyLobby": 52,
+        "matchRate": 0.9445629
+      },
+      {
+        "week": 32,
+        "status": "ready",
+        "fhwStores": 883,
+        "lobbyStores": 939,
+        "matchedStores": 883,
+        "onlyFhw": 0,
+        "onlyLobby": 56,
+        "matchRate": 0.94036209
+      },
+      {
+        "week": 33,
+        "status": "ready",
+        "fhwStores": 897,
+        "lobbyStores": 938,
+        "matchedStores": 896,
+        "onlyFhw": 1,
+        "onlyLobby": 42,
+        "matchRate": 0.95522388
+      },
+      {
+        "week": 34,
+        "status": "ready",
+        "fhwStores": 897,
+        "lobbyStores": 940,
+        "matchedStores": 896,
+        "onlyFhw": 1,
+        "onlyLobby": 44,
+        "matchRate": 0.95319149
+      },
+      {
+        "week": 35,
+        "status": "pending",
+        "fhwStores": 807,
+        "lobbyStores": 0,
+        "matchedStores": 0,
+        "onlyFhw": 807,
+        "onlyLobby": 0,
+        "matchRate": 0.0
+      }
+    ]
   },
   "executiveWeeks": [
     {
@@ -68,7 +133,7 @@
       "month": "Jul",
       "fhw": 156762.0,
       "lobby": 1904989.0,
-      "ratio": 0.08229024,
+      "ratio": 0.09195652,
       "stores": 853,
       "aboveTarget": 305,
       "nearTarget": 105,
@@ -79,7 +144,7 @@
       "month": "Ago",
       "fhw": 154932.0,
       "lobby": 1944123.0,
-      "ratio": 0.07969249,
+      "ratio": 0.088357,
       "stores": 850,
       "aboveTarget": 287,
       "nearTarget": 87,
@@ -90,7 +155,7 @@
       "month": "Ago",
       "fhw": 152531.0,
       "lobby": 1926318.0,
-      "ratio": 0.07918267,
+      "ratio": 0.08758908,
       "stores": 849,
       "aboveTarget": 278,
       "nearTarget": 113,
@@ -101,7 +166,7 @@
       "month": "Ago",
       "fhw": 150048.0,
       "lobby": 1977947.0,
-      "ratio": 0.07586048,
+      "ratio": 0.08295443,
       "stores": 853,
       "aboveTarget": 255,
       "nearTarget": 104,
@@ -112,7 +177,7 @@
       "month": "Ago",
       "fhw": 147753.0,
       "lobby": 1941463.0,
-      "ratio": 0.07610395,
+      "ratio": 0.08185579,
       "stores": 850,
       "aboveTarget": 251,
       "nearTarget": 107,

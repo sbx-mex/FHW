@@ -1,69 +1,69 @@
 {
   "status": "ok",
-  "checksTotal": 33,
-  "checksOk": 33,
+  "checksTotal": 36,
+  "checksOk": 36,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
     {
       "number": 1,
-      "name": "Directorio aplicable",
+      "name": "Promedio correcto",
       "status": "ok",
-      "detail": "Sólo publica tiendas elegibles del directorio."
+      "detail": "Calcula cada tienda y después promedia; no suma porcentajes ni divide totales."
     },
     {
       "number": 2,
-      "name": "Jerarquía automática",
+      "name": "Cruce sincronizado",
       "status": "ok",
-      "detail": "Nacional muestra 11 regiones; Región abre DMs; DM abre tiendas."
+      "detail": "El mismo CeCo y semana debe existir en numerador y denominador."
     },
     {
       "number": 3,
-      "name": "Filtros rápidos",
+      "name": "Semanas futuras automáticas",
       "status": "ok",
-      "detail": "Mes y Semana usan botones múltiples visibles; Región y DM permanecen simples."
+      "detail": "Detecta semanas posteriores y deja pendientes las fuentes incompletas."
     },
     {
       "number": 4,
-      "name": "Vista ejecutiva limpia",
+      "name": "Histórico seguro",
       "status": "ok",
-      "detail": "Oculta los KPI técnicos FHW y Bebidas Lobby."
+      "detail": "Semanas 1–29 promedian el porcentaje directo por tienda sin valores exagerados."
     },
     {
       "number": 5,
-      "name": "Ranking por alcance",
+      "name": "Filtros rápidos",
       "status": "ok",
-      "detail": "Ranking Top/Bottom cambia con Región, DM o Tienda."
+      "detail": "Mes y Semana permiten selección múltiple visible; Región y DM permanecen simples."
     },
     {
       "number": 6,
-      "name": "Historia enero-agosto",
+      "name": "Interfaz simplificada",
       "status": "ok",
-      "detail": "Las 34 semanas alimentan una tendencia mensual o semanal sin inventar denominadores históricos."
+      "detail": "Oculta términos técnicos y deja sólo Semana o Mes."
     },
     {
       "number": 7,
-      "name": "Sin tabla redundante",
+      "name": "Ranking por alcance",
       "status": "ok",
-      "detail": "Retira la tabla duplicada y evita publicar Vacante como tienda."
+      "detail": "Top/Bottom cambia con Región, DM o Tienda."
     },
     {
       "number": 8,
       "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF y XLSX toman nivel, alcance y periodos activos; CSV fue retirado."
+      "detail": "PDF y Excel | Dash usan el alcance y periodos activos."
     },
     {
       "number": 9,
-      "name": "Kit gobernado por JSON",
+      "name": "Responsive y PWA",
       "status": "ok",
-      "detail": "El recurso descargable se administra desde JSON."
+      "detail": "Navegación táctil y área segura para iOS/Android."
     },
     {
       "number": 10,
-      "name": "Rendimiento y publicación",
+      "name": "Publicación rápida",
       "status": "ok",
-      "detail": "Carga inicial menor a 2 MB, PWA y GitHub Pages relativos."
+      "detail": "Carga inicial menor a 2 MB y salida relativa para GitHub Pages."
     }
   ],
   "errors": []
