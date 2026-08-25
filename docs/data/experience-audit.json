@@ -19,9 +19,9 @@
     },
     {
       "number": 3,
-      "name": "Periodo múltiple",
+      "name": "Filtros rápidos",
       "status": "ok",
-      "detail": "Sólo Mes y Semana permiten selección múltiple."
+      "detail": "Mes y Semana usan botones múltiples visibles; Región y DM permanecen simples."
     },
     {
       "number": 4,
@@ -37,9 +37,9 @@
     },
     {
       "number": 6,
-      "name": "Tendencia flexible",
+      "name": "Historia enero-agosto",
       "status": "ok",
-      "detail": "Alterna semana a semana y meses según el periodo elegido."
+      "detail": "Las 34 semanas alimentan una tendencia mensual o semanal sin inventar denominadores históricos."
     },
     {
       "number": 7,
@@ -51,7 +51,7 @@
       "number": 8,
       "name": "Exportación contextual",
       "status": "ok",
-      "detail": "PDF toma nivel, alcance y semanas activas; CSV fue retirado."
+      "detail": "PDF y XLSX toman nivel, alcance y periodos activos; CSV fue retirado."
     },
     {
       "number": 9,

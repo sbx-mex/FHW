@@ -171,7 +171,8 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         directory_sheet = workbook["Directorio"] if "Directorio" in workbook.sheetnames else workbook[workbook.sheetnames[0]]
-        header_row, headers = locate_header(directory_sheet, ("CC", "Tienda", "DM"))
+        # El directorio operativo puede nombrar la llave como CC o CeCo.
+        header_row, headers = locate_header(directory_sheet, ("Tienda", "DM"))
         cc_i = column(headers, "CC", "CeCo")
         store_i = column(headers, "Tienda", "Nombre de Tienda")
         region_i = column(headers, "Región", "Region")
@@ -373,6 +374,25 @@ def build() -> dict[str, Any]:
         })
 
     all_records = sorted(historical_records + live_records, key=lambda item: (item["week"], item["store"].casefold()))
+
+    # La adopción histórica sí es comparable de S1 a S34 porque parte del
+    # resultado directo por tienda: porcentaje de tiendas con CTC > 10%.
+    adoption_rollups: dict[str, list[dict[str, Any]]] = {"national": [], "region": [], "dm": []}
+    for level in ("national", "region", "dm"):
+        grouped_adoption: defaultdict[tuple[int, str], list[dict[str, Any]]] = defaultdict(list)
+        for item in all_records:
+            name = "Nacional" if level == "national" else item[level]
+            grouped_adoption[(item["week"], name)].append(item)
+        for (item_week, name), items in sorted(grouped_adoption.items()):
+            stores = {item["ceco"] for item in items}
+            above = sum(1 for item in items if item["ratio"] > TARGET)
+            adoption_rollups[level].append({
+                "week": item_week,
+                "name": name,
+                "stores": len(stores),
+                "aboveTarget": above,
+                "ratio": round(above / len(items), 8) if items else 0,
+            })
     live_weeks = sorted({item["week"] for item in live_records})
     latest_week = max(live_weeks) if live_weeks else 0
     latest = [item for item in live_records if item["week"] == latest_week]
@@ -470,7 +490,7 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.5.0",
+            "version": "1.6.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
             "latestCompleteWeek": latest_week,
@@ -500,6 +520,7 @@ def build() -> dict[str, Any]:
             "coverageByWeek": coverage_by_week,
             "executiveWeeks": executive_weeks,
             "weeklyRollups": weekly_rollups,
+            "adoptionRollups": adoption_rollups,
             "quality": quality,
         },
         "records": sorted(live_records, key=lambda item: (item["week"], item["store"].casefold())),

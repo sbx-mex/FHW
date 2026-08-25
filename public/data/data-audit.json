@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-25T08:59:57.514807+00:00",
+  "generatedAt": "2026-08-25T09:25:50.459065+00:00",
   "formula": "SUM(FHW) / SUM(Bebidas Lobby)",
   "target": 0.1,
   "latestCompleteWeek": 34,
@@ -25,33 +25,33 @@
     },
     "reference": {
       "file": "Directorio_FHW.xlsx",
-      "sheet": "Directorio",
-      "includedStores": 942,
-      "excludedStores": 26,
-      "applyRule": "Estatus = Abierta (equivale a Aplica = Sí)",
-      "applyColumnPresent": false,
+      "sheet": "Hoja1",
+      "includedStores": 889,
+      "excludedStores": 70,
+      "applyRule": "Aplica = Sí",
+      "applyColumnPresent": true,
       "calendarWeeks": 52,
-      "historicalStoreRows": 24612,
-      "historicalDmRows": 1769,
-      "sha256": "5e34677c8bfc14fcc20d25bfe60c40842abb14ae89cca93f785c5f681d4815ca",
-      "calendarSource": "Directorio_FHW.xlsx"
+      "historicalStoreRows": 0,
+      "historicalDmRows": 0,
+      "sha256": "61d4fcfbdb2e11a2aa1dafa458fc2fea194edd0bad5f941c5a1d0987b46f5044",
+      "calendarSource": "Base_Año_Mes_Sem.xlsx"
     }
   },
   "joins": {
     "liveKeysFhw": 5264,
     "liveKeysLobby": 4695,
     "intersectedKeys": 4455,
-    "publishedLiveRows": 4421,
-    "publishedHistoricalRows": 24612,
-    "excludedNoApplicableDirectory": 34,
+    "publishedLiveRows": 4255,
+    "publishedHistoricalRows": 24696,
+    "excludedNoApplicableDirectory": 200,
     "zeroDenominator": 0
   },
   "latest": {
-    "stores": 889,
-    "fhw": 148385.0,
-    "lobby": 2106853.0,
-    "weightedRatio": 0.07042969,
-    "storesAtTarget": 250
+    "stores": 850,
+    "fhw": 147753.0,
+    "lobby": 1941463.0,
+    "weightedRatio": 0.07610395,
+    "storesAtTarget": 251
   },
   "quality": {
     "status": "ok",
@@ -60,63 +60,63 @@
     "zeroDenominatorRows": 0,
     "extremeRatiosFlagged": 0,
     "lowVolumeRowsFlagged": 0,
-    "latestCoverage": 0.94373673
+    "latestCoverage": 0.95613048
   },
   "executiveWeeks": [
     {
       "week": 30,
       "month": "Jul",
-      "fhw": 158249.0,
-      "lobby": 2057953.0,
-      "ratio": 0.07689631,
-      "stores": 888,
-      "aboveTarget": 308,
+      "fhw": 156762.0,
+      "lobby": 1904989.0,
+      "ratio": 0.08229024,
+      "stores": 853,
+      "aboveTarget": 305,
       "nearTarget": 105,
-      "opportunity": 475
+      "opportunity": 443
     },
     {
       "week": 31,
       "month": "Ago",
-      "fhw": 155886.0,
-      "lobby": 2078151.0,
-      "ratio": 0.07501187,
-      "stores": 879,
+      "fhw": 154932.0,
+      "lobby": 1944123.0,
+      "ratio": 0.07969249,
+      "stores": 850,
       "aboveTarget": 287,
-      "nearTarget": 88,
-      "opportunity": 504
+      "nearTarget": 87,
+      "opportunity": 476
     },
     {
       "week": 32,
       "month": "Ago",
-      "fhw": 153587.0,
-      "lobby": 2058203.0,
-      "ratio": 0.07462189,
-      "stores": 876,
+      "fhw": 152531.0,
+      "lobby": 1926318.0,
+      "ratio": 0.07918267,
+      "stores": 849,
       "aboveTarget": 278,
-      "nearTarget": 114,
-      "opportunity": 484
+      "nearTarget": 113,
+      "opportunity": 458
     },
     {
       "week": 33,
       "month": "Ago",
-      "fhw": 150827.0,
-      "lobby": 2130831.0,
-      "ratio": 0.07078318,
-      "stores": 889,
+      "fhw": 150048.0,
+      "lobby": 1977947.0,
+      "ratio": 0.07586048,
+      "stores": 853,
       "aboveTarget": 255,
       "nearTarget": 104,
-      "opportunity": 530
+      "opportunity": 494
     },
     {
       "week": 34,
       "month": "Ago",
-      "fhw": 148385.0,
-      "lobby": 2106853.0,
-      "ratio": 0.07042969,
-      "stores": 889,
-      "aboveTarget": 250,
+      "fhw": 147753.0,
+      "lobby": 1941463.0,
+      "ratio": 0.07610395,
+      "stores": 850,
+      "aboveTarget": 251,
       "nearTarget": 107,
-      "opportunity": 532
+      "opportunity": 492
     }
   ],
   "example38101w30": {
@@ -125,7 +125,7 @@
     "month": "Jul",
     "ceco": "38101",
     "store": "Angel",
-    "dm": "Daniel Flores Maldonado",
+    "dm": "Guadalupe Ibarra Martínez",
     "region": "Centro Centro",
     "fhw": 59.0,
     "lobby": 3111.0,

@@ -34,7 +34,7 @@ class PipelineTests(unittest.TestCase):
         rows = [row for row in self.records if row["week"] == 34 and row["source"] == "calculado"]
         expected = sum(row["fhw"] for row in rows) / sum(row["lobby"] for row in rows)
         self.assertAlmostEqual(expected, self.audit["latest"]["weightedRatio"], places=8)
-        self.assertAlmostEqual(expected, 148385 / 2106853, places=8)
+        self.assertAlmostEqual(expected, 147753 / 1941463, places=8)
 
     def test_records_are_unique_and_named(self):
         keys = [(row["ceco"], row["week"]) for row in self.records]
@@ -105,6 +105,12 @@ class PipelineTests(unittest.TestCase):
         for item in rollups["region"] + rollups["dm"]:
             self.assertGreater(item["lobby"], 0)
             self.assertAlmostEqual(item["ratio"], item["fhw"] / item["lobby"], places=8)
+
+    def test_historical_adoption_covers_january_to_august(self):
+        rollups = self.payload["meta"]["adoptionRollups"]["national"]
+        self.assertEqual([item["week"] for item in rollups], list(range(1, 35)))
+        self.assertTrue(all(0 <= item["ratio"] <= 1 for item in rollups))
+        self.assertTrue(all(item["aboveTarget"] <= item["stores"] for item in rollups))
 
     def test_multiweek_weighting_is_not_an_average_of_percentages(self):
         rows = [row for row in self.records if row["week"] in {30, 31, 32, 33, 34} and row["source"] == "calculado"]
