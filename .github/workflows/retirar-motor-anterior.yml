@@ -1,0 +1,39 @@
+name: Retirar motor histórico anterior
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Confirmar nuevo motor antes de borrar
+        run: |
+          test -f input/CTC_FHW_1_34.csv
+          test -f input/CTC_Bebidas_Lobby_1_34.csv
+          test -f input/CTC_FHW.csv
+          test -f input/CTC_Bebidas_Lobby.csv
+          ! grep -R --exclude-dir=.git "FHW_Sem1_29" scripts tests input README.md
+          python scripts/build_data.py
+          python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Retirar fuente anterior
+        run: |
+          git rm --ignore-unmatch input/FHW_Sem1_29.csv
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "Sin archivos anteriores para retirar."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Retira motor histórico FHW anterior"
+          git push
