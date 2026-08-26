@@ -18,7 +18,7 @@ FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región e
 - Pestañas **Tienda**, **DM** y **Región**.
 - Mes y Semana visibles como filtros rápidos de selección múltiple; Región y DM son filtros únicos encadenados.
 - Promedio por tienda, tendencia, lectura ejecutiva, Top y Bottom.
-- Tendencia completa enero–agosto: adopción por tienda en semanas 1–29 y ponderación exacta desde semana 30.
+- Tendencia completa enero–agosto: FHW / Bebidas Lobby por tienda en semanas 1–34 y operación continua desde semana 35.
 - Semana incompleta protegida: sólo se publica cuando existen FHW y Bebidas Lobby.
 - Menú **Descargar** con confirmación, PDF ejecutivo horizontal de una página y Excel XLSX con hojas `Dashboard`, `Detalle` y `Tendencia`.
 - Descarga del `Toolkit_Cada_Taza_Cuenta.pdf`.
@@ -54,20 +54,20 @@ La versión lista para publicar queda en `docs/`. En **Settings → Pages**, sel
 
 | Archivo | Uso |
 | --- | --- |
-| `CTC_FHW.csv` | Numerador desde semana 30. |
-| `CTC_Bebidas_Lobby.csv` | Denominador desde semana 30. |
+| `CTC_FHW_1_34.csv` | Numerador histórico 2026, semanas 1–34. |
+| `CTC_Bebidas_Lobby_1_34.csv` | Denominador histórico 2026, semanas 1–34. |
+| `CTC_FHW.csv` | Numerador operativo desde semana 35. |
+| `CTC_Bebidas_Lobby.csv` | Denominador operativo desde semana 35. |
 | `Directorio_FHW.xlsx` | Nombre de tienda, Región, DM y aplicación. Si existe `Aplica`, sólo acepta `Sí`; si no, usa `Estatus = Abierta`. |
-| `FHW_Sem1_29.csv` | Histórico opcional con `Año, Semana, Ceco, FHW`; sustituye el histórico del libro de referencia. |
 | `Base_Año_Mes_Sem.xlsx` | Calendario opcional con `Año, Mes, Semana`; sustituye el calendario del libro de referencia. |
 
 El `Directorio_FHW.xlsx` incluido usa `CeCo`, `Tienda`, `Región`, `DM` y `Aplica`; sólo se publican filas con `Aplica = Sí`.
 
 ## Validaciones incluidas
 
-- Tienda Ángel, semana 30: `59 / 3,111 = 1.8965%`.
-- Última semana completa: 34.
-- Semana 35 se excluye hasta recibir Bebidas Lobby.
-- Cruce único por `CeCo + Semana`.
+- Histórico: semanas 1–34; operación: semana 35 en adelante.
+- Cruce único por `CeCo + Año + Semana`.
+- Los CSV históricos pueden incluir otros años, pero sólo se publica 2026.
 - Rechazo de denominadores en cero.
 - Nombres de tienda obligatorios.
 - Límite de 25 MB por archivo/carpeta y máximo 100 entradas por carpeta del paquete.

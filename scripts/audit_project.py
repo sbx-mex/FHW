@@ -37,8 +37,9 @@ def main() -> int:
     dynamic_latest = max(ready_weeks, default=0)
     check("Latest synchronized week", audit.get("latestCompleteWeek") == dynamic_latest, str(audit.get("latestCompleteWeek")))
     check("Average formula", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda")
-    check("Example 38101", abs(audit["example38101w30"]["ratio"] - 59 / 3111) < 1e-8)
-    check("Live rows", audit["joins"]["publishedLiveRows"] > 4000, str(audit["joins"]["publishedLiveRows"]))
+    example = audit.get("exampleLatest") or {}
+    check("Latest example", (bool(example) and abs(example["ratio"] - example["fhw"] / example["lobby"]) < 1e-8) or audit.get("latestCompleteWeek") == 0)
+    check("Live rows", audit["joins"]["publishedLiveRows"] > 0 or bool(pending_weeks), str(audit["joins"]["publishedLiveRows"]))
     check("Historical rows", audit["joins"]["publishedHistoricalRows"] > 20000, str(audit["joins"]["publishedHistoricalRows"]))
     check("No zero denominators", audit["joins"]["zeroDenominator"] == 0)
     check("Unique records", len(records) == len({(row["ceco"], row["week"]) for row in records}))
@@ -47,7 +48,7 @@ def main() -> int:
     check("Fast initial payload", (ROOT / "public/data/fhw-dashboard.json").stat().st_size < 2 * 1024 * 1024)
     check("All rows published", len(records) == audit["joins"]["publishedLiveRows"] + audit["joins"]["publishedHistoricalRows"], str(len(records)))
     latest_rows = [row for row in payload["records"] if row["week"] == payload["meta"]["latestCompleteWeek"]]
-    latest_average = sum(row["ratio"] for row in latest_rows) / len(latest_rows)
+    latest_average = sum(row["ratio"] for row in latest_rows) / len(latest_rows) if latest_rows else 0
     check("Latest average result", abs(latest_average - audit["latest"]["averageRatio"]) < 1e-8, str(latest_average))
     check("Ratios in valid range", all(0 <= row["ratio"] <= 1 for row in records))
     hierarchy = payload["meta"].get("organization", {}).get("hierarchy", [])
@@ -67,12 +68,12 @@ def main() -> int:
     executive_weeks = payload["meta"].get("executiveWeeks", [])
     quality = payload["meta"].get("quality", {})
     latest_summary = next((item for item in executive_weeks if item["week"] == audit["latestCompleteWeek"]), {})
-    check("Python executive summary", bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["averageRatio"]) < 1e-8)
+    check("Python executive summary", (bool(latest_summary) and abs(latest_summary.get("ratio", 0) - audit["latest"]["averageRatio"]) < 1e-8) or audit["latestCompleteWeek"] == 0)
     check("Python quality gate", quality.get("status") == "ok" and quality.get("invalidSourceRows") == 0 and quality.get("zeroDenominatorRows") == 0)
     synchronization = update_state.get("synchronization", [])
     check("Numerator denominator synchronized", bool(synchronization) and all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"))
     check("Pending weeks are not published", not any(row["week"] in pending_weeks and row["source"] == "calculado" for row in records), str(pending_weeks))
-    check("Performance bands reconcile", bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1))
+    check("Performance bands reconcile", (bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1)) or audit["latestCompleteWeek"] == 0)
     check("Eleven regions", payload["meta"]["organization"]["regions"] == 11, str(payload["meta"]["organization"]["regions"]))
     rollups = payload["meta"].get("weeklyRollups", {})
     rollup_rows = rollups.get("region", []) + rollups.get("dm", [])
@@ -81,7 +82,7 @@ def main() -> int:
         level = "region" if item in rollups.get("region", []) else "dm"
         selected = [row for row in live_records if row["week"] == item["week"] and row[level] == item["name"]]
         return sum(row["ratio"] for row in selected) / len(selected) if selected else -1
-    check("Python average rollups", bool(rollup_rows) and all(abs(item["ratio"] - expected_rollup(item)) < 1e-8 for item in rollup_rows))
+    check("Python average rollups", (bool(rollup_rows) and all(abs(item["ratio"] - expected_rollup(item)) < 1e-8 for item in rollup_rows)) or audit["latestCompleteWeek"] == 0)
     for name, path in {
         "Manifest": ROOT / "public/manifest.webmanifest", "Service worker": ROOT / "public/sw.js",
         "Toolkit": ROOT / "public/Toolkit_Cada_Taza_Cuenta.pdf", "Logo": ROOT / "public/assets/logo-cada-taza-cuenta.png",
@@ -119,7 +120,9 @@ def main() -> int:
     improvement(1, "Promedio correcto", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda", "Calcula cada tienda y después promedia; no suma porcentajes ni divide totales.")
     improvement(2, "Cruce sincronizado", all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"), "El mismo CeCo y semana debe existir en numerador y denominador.")
     improvement(3, "Semanas futuras automáticas", dynamic_latest == payload["meta"]["latestCompleteWeek"] and bool(pending_weeks), "Detecta semanas posteriores y deja pendientes las fuentes incompletas.")
-    improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–29 promedian el porcentaje directo por tienda sin valores exagerados.")
+    historical_weeks = payload["meta"].get("historicalWeeks", [])
+    check("Historical engine range", historical_weeks == list(range(1, 35)), str(historical_weeks))
+    improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años.")
     improvement(5, "Filtros rápidos", "function MultiSelect" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source and "Aplicar y cerrar" in dashboard_source, "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples.")
     improvement(6, "Interfaz simplificada", "Histórico</button>" not in dashboard_source and "Ponderado</button>" not in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta términos técnicos y deja sólo Semana o Mes.")
     improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "function list" in pdf_source and "columns=items.length>7?2:1" in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas.")

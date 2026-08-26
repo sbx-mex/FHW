@@ -19,21 +19,27 @@ class PipelineTests(unittest.TestCase):
             history = json.loads((ROOT / "public" / filename).read_text(encoding="utf-8"))
             cls.records.extend(history["records"])
 
-    def test_example_38101_week_30(self):
-        row = self.audit["example38101w30"]
-        self.assertEqual(row["fhw"], 59)
-        self.assertEqual(row["lobby"], 3111)
-        self.assertAlmostEqual(row["ratio"], 59 / 3111, places=8)
+    def test_latest_example_reconciles(self):
+        row = self.audit["exampleLatest"]
+        if self.audit["latestCompleteWeek"]:
+            self.assertIsNotNone(row)
+            self.assertEqual(row["week"], self.audit["latestCompleteWeek"])
+            self.assertAlmostEqual(row["ratio"], row["fhw"] / row["lobby"], places=8)
+        else:
+            self.assertIsNone(row)
 
     def test_latest_complete_week(self):
         ready = self.payload["meta"]["updateState"]["readyWeeks"]
-        self.assertEqual(self.audit["latestCompleteWeek"], max(ready))
+        self.assertEqual(self.audit["latestCompleteWeek"], max(ready, default=0))
         live_weeks = {row["week"] for row in self.records if row["source"] == "calculado"}
         self.assertEqual(live_weeks, set(ready))
 
     def test_latest_ratio_is_average_of_store_percentages(self):
         latest = self.audit["latestCompleteWeek"]
         rows = [row for row in self.records if row["week"] == latest and row["source"] == "calculado"]
+        if not rows:
+            self.assertEqual(latest, 0)
+            return
         expected = sum(row["ratio"] for row in rows) / len(rows)
         self.assertAlmostEqual(expected, self.audit["latest"]["averageRatio"], places=8)
         ratio_of_totals = sum(row["fhw"] for row in rows) / sum(row["lobby"] for row in rows)
@@ -75,6 +81,9 @@ class PipelineTests(unittest.TestCase):
     def test_weekly_coverage_matches_latest_cut(self):
         coverage = {item["week"]: item for item in self.payload["meta"]["coverageByWeek"]}
         latest = self.audit["latestCompleteWeek"]
+        if latest == 0:
+            self.assertFalse(coverage)
+            return
         self.assertEqual(coverage[latest]["publishedStores"], self.audit["latest"]["stores"])
         self.assertLessEqual(coverage[latest]["publishedStores"], coverage[latest]["matchedStores"])
 
@@ -85,6 +94,9 @@ class PipelineTests(unittest.TestCase):
 
     def test_python_executive_summary_reconciles(self):
         latest = self.audit["latestCompleteWeek"]
+        if latest == 0:
+            self.assertFalse(self.payload["meta"]["executiveWeeks"])
+            return
         summary = {item["week"]: item for item in self.payload["meta"]["executiveWeeks"]}[latest]
         self.assertEqual(summary["fhw"], self.audit["latest"]["fhw"])
         self.assertEqual(summary["lobby"], self.audit["latest"]["lobby"])
@@ -105,8 +117,9 @@ class PipelineTests(unittest.TestCase):
 
     def test_python_rollups_are_average_of_store_percentages(self):
         rollups = self.payload["meta"]["weeklyRollups"]
-        self.assertTrue(rollups["region"])
-        self.assertTrue(rollups["dm"])
+        if not rollups["region"] and not rollups["dm"]:
+            self.assertEqual(self.audit["latestCompleteWeek"], 0)
+            return
         for level in ("region", "dm"):
             for item in rollups[level]:
                 rows = [row for row in self.payload["records"] if row["week"] == item["week"] and row[level] == item["name"]]
@@ -120,15 +133,16 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(item["aboveTarget"] <= item["stores"] for item in rollups))
 
     def test_multiweek_result_is_simple_average_of_percentages(self):
-        rows = [row for row in self.records if row["week"] in {30, 31, 32, 33, 34} and row["source"] == "calculado"]
+        rows = [row for row in self.records if row["week"] in {30, 31, 32, 33, 34} and row["source"] == "histórico calculado"]
         simple_average = sum(row["ratio"] for row in rows) / len(rows)
         self.assertAlmostEqual(simple_average, build_data.average_ratio(rows), places=8)
         self.assertGreater(simple_average, 0)
 
     def test_future_week_waits_for_both_sources(self):
         state = self.payload["meta"]["updateState"]
-        self.assertIn(35, state["pendingWeeks"])
-        self.assertFalse(any(row["week"] == 35 and row["source"] == "calculado" for row in self.records))
+        self.assertTrue(all(week >= build_data.LIVE_START_WEEK for week in state["readyWeeks"] + state["pendingWeeks"]))
+        for week in state["pendingWeeks"]:
+            self.assertFalse(any(row["week"] == week and row["source"] == "calculado" for row in self.records))
         ready = [item for item in state["synchronization"] if item["status"] == "ready"]
         self.assertTrue(all(item["matchRate"] >= build_data.MIN_SYNC_RATE for item in ready))
 
@@ -136,6 +150,14 @@ class PipelineTests(unittest.TestCase):
         historical = [row for row in self.records if row["source"].startswith("histórico")]
         self.assertTrue(historical)
         self.assertTrue(all(0 <= row["ratio"] <= 1 for row in historical))
+
+    def test_historical_and_live_ranges_never_overlap(self):
+        historical = [row for row in self.records if row["source"] == "histórico calculado"]
+        live = [row for row in self.records if row["source"] == "calculado"]
+        self.assertTrue(historical)
+        self.assertTrue(all(1 <= row["week"] <= build_data.HISTORICAL_END_WEEK for row in historical))
+        self.assertTrue(all(row["week"] >= build_data.LIVE_START_WEEK for row in live))
+        self.assertEqual(self.payload["meta"]["historicalWeeks"], list(range(1, 35)))
 
 
 if __name__ == "__main__":

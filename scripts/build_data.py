@@ -27,6 +27,8 @@ INPUT = ROOT / "input"
 OUTPUT = ROOT / "public" / "data"
 TARGET = 0.10
 MIN_SYNC_RATE = 0.90
+HISTORICAL_END_WEEK = 34
+LIVE_START_WEEK = HISTORICAL_END_WEEK + 1
 MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 
@@ -48,6 +50,8 @@ def number(value: Any) -> float | None:
         result = float(value)
     else:
         text = clean(value).replace(",", "").replace("%", "")
+        if text.startswith("(") and text.endswith(")"):
+            text = f"-{text[1:-1]}"
         try:
             result = float(text)
         except ValueError:
@@ -128,22 +132,31 @@ def value_from(row: dict[str, Any], *names: str) -> Any:
     raise KeyError(f"No se encontró columna: {', '.join(names)}")
 
 
-def aggregate_report(path: Path, measure: tuple[str, ...]) -> tuple[dict[tuple[str, int], float], dict[str, Any]]:
-    rows, header_row = report_rows(path, ("Tiendas", "Semana", measure[0]))
-    grouped: defaultdict[tuple[str, int], float] = defaultdict(float)
+def aggregate_report(path: Path, measure: tuple[str, ...]) -> tuple[dict[tuple[str, int, int], float], dict[str, Any]]:
+    rows, header_row = report_rows(path, ("Tiendas", "Semana"))
+    # Año es parte de la llave: los exportes históricos pueden contener años previos.
+    grouped: defaultdict[tuple[str, int, int], float] = defaultdict(float)
     source_rows = duplicate_rows = invalid_rows = 0
     for row in rows:
         source_rows += 1
         store = ceco(value_from(row, "Tiendas", "Tienda", "CeCo"))
         period = parse_period(value_from(row, "Semana"))
-        amount = number(value_from(row, *measure))
+        try:
+            amount = number(value_from(row, *measure))
+        except KeyError:
+            # Algunos exportes de BI colocan el nombre de la medida en
+            # "Indicadores" y dejan el importe en la última columna sin nombre.
+            indicator = key(value_from(row, "Indicadores", "Indicador"))
+            overflow = row.get(None) or row.get("") or []
+            raw_amount = overflow[-1] if isinstance(overflow, list) else overflow
+            amount = number(raw_amount) if indicator in {key(item) for item in measure} and raw_amount != "" else None
         if not store or not period or amount is None:
             invalid_rows += 1
             continue
-        _, week = period
-        if (store, week) in grouped:
+        year, week = period
+        if (store, year, week) in grouped:
             duplicate_rows += 1
-        grouped[(store, week)] += amount
+        grouped[(store, year, week)] += amount
     return dict(grouped), {
         "file": path.name,
         "headerRow": header_row,
@@ -177,7 +190,7 @@ def is_yes(value: Any) -> bool:
     return key(value) in {"si", "sí", "1", "true", "aplica", "yes"}
 
 
-def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str], dict[str, Any]]:
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         directory_sheet = workbook["Directorio"] if "Directorio" in workbook.sheetnames else workbook[workbook.sheetnames[0]]
@@ -225,34 +238,7 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
                 if year == 2026 and week is not None and month in MONTHS:
                     week_month[int(week)] = month
 
-        historical: list[dict[str, Any]] = []
-        if "CTC_Tienda" in workbook.sheetnames:
-            sheet = workbook["CTC_Tienda"]
-            hist_header, hist_headers = locate_header(sheet, ("Año", "Semana", "Ceco", "Part FHW"))
-            year_i = column(hist_headers, "Año")
-            week_i = column(hist_headers, "Semana")
-            ceco_i = column(hist_headers, "Ceco", "CeCo")
-            ratio_i = column(hist_headers, "Part FHW", "FHW")
-            for row in sheet.iter_rows(min_row=hist_header + 1, values_only=True):
-                year, week, code, ratio = number(row[year_i]), number(row[week_i]), ceco(row[ceco_i]), percent(row[ratio_i])
-                if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None and 0 <= ratio <= 1:
-                    historical.append({"year": 2026, "week": int(week), "ceco": code, "ratio": ratio})
-
-        historical_dm: list[dict[str, Any]] = []
-        if "CTC_DM" in workbook.sheetnames:
-            sheet = workbook["CTC_DM"]
-            dm_header, dm_headers = locate_header(sheet, ("Año", "Semana", "DM", "Part FHW"))
-            year_i = column(dm_headers, "Año")
-            week_i = column(dm_headers, "Semana")
-            dm_i = column(dm_headers, "DM")
-            ratio_i = column(dm_headers, "Part FHW", "FHW")
-            valid_dms = {item["dm"] for item in directory.values()}
-            for row in sheet.iter_rows(min_row=dm_header + 1, values_only=True):
-                year, week, dm, ratio = number(row[year_i]), number(row[week_i]), clean(row[dm_i]), percent(row[ratio_i])
-                if year == 2026 and week is not None and 1 <= int(week) <= 29 and dm in valid_dms and ratio is not None and 0 <= ratio <= 1:
-                    historical_dm.append({"year": 2026, "week": int(week), "dm": dm, "ratio": ratio})
-
-        return directory, week_month, historical, historical_dm, {
+        return directory, week_month, {
             "file": path.name,
             "sheet": directory_sheet.title,
             "includedStores": len(directory),
@@ -260,27 +246,10 @@ def load_reference(path: Path) -> tuple[dict[str, dict[str, str]], dict[int, str
             "applyRule": "Aplica = Sí" if applies_i is not None else "Estatus = Abierta (equivale a Aplica = Sí)",
             "applyColumnPresent": applies_i is not None,
             "calendarWeeks": len(week_month),
-            "historicalStoreRows": len(historical),
-            "historicalDmRows": len(historical_dm),
             "sha256": sha256(path),
         }
     finally:
         workbook.close()
-
-
-def load_uploaded_historical(path: Path, directory: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    rows, _ = report_rows(path, ("Año", "Semana", "Ceco", "FHW"))
-    result = []
-    for row in rows:
-        year = number(value_from(row, "Año"))
-        week = number(value_from(row, "Semana"))
-        code = ceco(value_from(row, "Ceco", "CeCo"))
-        ratio = percent(value_from(row, "FHW"))
-        if year == 2026 and week is not None and 1 <= int(week) <= 29 and code in directory and ratio is not None and 0 <= ratio <= 1:
-            result.append({"year": 2026, "week": int(week), "ceco": code, "ratio": ratio})
-    return result
 
 
 def load_calendar_override(path: Path) -> dict[int, str]:
@@ -314,14 +283,18 @@ def average_ratio(items: Iterable[dict[str, Any]]) -> float:
 def build() -> dict[str, Any]:
     fhw_path = INPUT / "CTC_FHW.csv"
     lobby_path = INPUT / "CTC_Bebidas_Lobby.csv"
+    historical_fhw_path = INPUT / "CTC_FHW_1_34.csv"
+    historical_lobby_path = INPUT / "CTC_Bebidas_Lobby_1_34.csv"
     reference_path = INPUT / "Directorio_FHW.xlsx"
-    for path in (fhw_path, lobby_path, reference_path):
+    for path in (fhw_path, lobby_path, historical_fhw_path, historical_lobby_path, reference_path):
         if not path.exists():
             raise FileNotFoundError(f"Falta fuente obligatoria: {path.relative_to(ROOT)}")
 
     fhw, fhw_audit = aggregate_report(fhw_path, ("Cantidad Ajustada", "FHW"))
     lobby, lobby_audit = aggregate_report(lobby_path, ("Unidades", "Bebidas Lobby"))
-    directory, week_month, historical, historical_dm, reference_audit = load_reference(reference_path)
+    historical_fhw, historical_fhw_audit = aggregate_report(historical_fhw_path, ("Cantidad Ajustada", "FHW"))
+    historical_lobby, historical_lobby_audit = aggregate_report(historical_lobby_path, ("Unidades", "Bebidas Lobby"))
+    directory, week_month, reference_audit = load_reference(reference_path)
     calendar_override = load_calendar_override(INPUT / "Base_Año_Mes_Sem.xlsx")
     if calendar_override:
         week_month = calendar_override
@@ -329,10 +302,6 @@ def build() -> dict[str, Any]:
         reference_audit["calendarSource"] = "Base_Año_Mes_Sem.xlsx"
     else:
         reference_audit["calendarSource"] = reference_path.name
-    uploaded_historical = load_uploaded_historical(INPUT / "FHW_Sem1_29.csv", directory)
-    if uploaded_historical:
-        historical = uploaded_historical
-
     hierarchy_map: defaultdict[str, defaultdict[str, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
     for code, item in sorted(directory.items(), key=lambda pair: (pair[1]["region"].casefold(), pair[1]["dm"].casefold(), pair[1]["store"].casefold())):
         hierarchy_map[item["region"]][item["dm"]].append({"ceco": code, "name": item["store"], "applies": True})
@@ -344,80 +313,77 @@ def build() -> dict[str, Any]:
         for region, dms in hierarchy_map.items()
     ]
 
-    source_weeks = sorted({week for _, week in set(fhw) | set(lobby) if week >= 30})
-    synchronization = []
-    ready_weeks = []
-    for item_week in source_weeks:
-        fhw_codes = {code for code, week in fhw if week == item_week}
-        lobby_codes = {code for code, week in lobby if week == item_week}
-        matched_codes = fhw_codes & lobby_codes
-        sync_rate = len(matched_codes) / max(len(fhw_codes), len(lobby_codes), 1)
-        has_both_sources = bool(fhw_codes) and bool(lobby_codes)
-        status = "ready" if has_both_sources and sync_rate >= MIN_SYNC_RATE else "pending"
-        if has_both_sources and sync_rate < MIN_SYNC_RATE:
-            raise ValueError(
-                f"Semana {item_week} fuera de congruencia: "
-                f"FHW={len(fhw_codes)}, Lobby={len(lobby_codes)}, coincidencias={len(matched_codes)}"
-            )
-        if status == "ready":
-            ready_weeks.append(item_week)
-        synchronization.append({
-            "week": item_week,
-            "status": status,
-            "fhwStores": len(fhw_codes),
-            "lobbyStores": len(lobby_codes),
-            "matchedStores": len(matched_codes),
-            "onlyFhw": len(fhw_codes - lobby_codes),
-            "onlyLobby": len(lobby_codes - fhw_codes),
-            "matchRate": round(sync_rate, 8),
-        })
+    def select_periods(data: dict[tuple[str, int, int], float], minimum: int, maximum: int | None) -> dict[tuple[str, int, int], float]:
+        return {
+            item: value for item, value in data.items()
+            if item[1] == 2026 and item[2] >= minimum and (maximum is None or item[2] <= maximum)
+        }
 
-    live_keys = sorted(
-        ((set(fhw) & set(lobby)) & {(code, week) for code, week in set(fhw) | set(lobby) if week in ready_weeks}),
-        key=lambda item: (item[1], int(item[0])),
-    )
-    live_records: list[dict[str, Any]] = []
-    excluded_no_directory = zero_denominator = 0
-    for code, week in live_keys:
-        if week < 30:
-            continue
-        meta = directory.get(code)
-        if meta is None:
-            excluded_no_directory += 1
-            continue
-        denominator = lobby[(code, week)]
-        if denominator <= 0:
-            zero_denominator += 1
-            continue
-        numerator = fhw[(code, week)]
-        live_records.append({
-            "year": 2026,
-            "week": week,
-            "month": week_month.get(week, month_fallback(week)),
-            "ceco": code,
-            "store": meta["store"],
-            "dm": meta["dm"],
-            "region": meta["region"],
-            "fhw": round(numerator, 6),
-            "lobby": round(denominator, 6),
-            "ratio": round(numerator / denominator, 8),
-            "source": "calculado",
-        })
+    def synchronize(
+        numerator: dict[tuple[str, int, int], float], denominator: dict[tuple[str, int, int], float], *, strict: bool
+    ) -> tuple[list[int], list[int], list[dict[str, Any]]]:
+        weeks = sorted({week for _, _, week in set(numerator) | set(denominator)})
+        ready, pending, result = [], [], []
+        for item_week in weeks:
+            fhw_codes = {code for code, _, week in numerator if week == item_week}
+            lobby_codes = {code for code, _, week in denominator if week == item_week}
+            matched_codes = fhw_codes & lobby_codes
+            sync_rate = len(matched_codes) / max(len(fhw_codes), len(lobby_codes), 1)
+            ready_week = bool(fhw_codes) and bool(lobby_codes) and sync_rate >= MIN_SYNC_RATE
+            if strict and not ready_week:
+                raise ValueError(
+                    f"Semana {item_week} fuera de congruencia: "
+                    f"FHW={len(fhw_codes)}, Lobby={len(lobby_codes)}, coincidencias={len(matched_codes)}"
+                )
+            (ready if ready_week else pending).append(item_week)
+            result.append({
+                "week": item_week, "status": "ready" if ready_week else "pending",
+                "fhwStores": len(fhw_codes), "lobbyStores": len(lobby_codes),
+                "matchedStores": len(matched_codes), "onlyFhw": len(fhw_codes - lobby_codes),
+                "onlyLobby": len(lobby_codes - fhw_codes), "matchRate": round(sync_rate, 8),
+            })
+        return ready, pending, result
 
-    historical_records = []
-    for item in historical:
-        meta = directory[item["ceco"]]
-        historical_records.append({
-            **item,
-            "month": week_month.get(item["week"], month_fallback(item["week"])),
-            "store": meta["store"],
-            "dm": meta["dm"],
-            "region": meta["region"],
-            "fhw": None,
-            "lobby": None,
-            "ratio": round(item["ratio"], 8),
-            "source": "histórico directo",
-        })
+    def records_from(
+        numerator: dict[tuple[str, int, int], float], denominator: dict[tuple[str, int, int], float], ready: list[int], source: str
+    ) -> tuple[list[dict[str, Any]], int, int, int]:
+        records: list[dict[str, Any]] = []
+        excluded = zeroes = out_of_range = 0
+        keys = sorted((set(numerator) & set(denominator)) & {item for item in set(numerator) | set(denominator) if item[2] in ready}, key=lambda item: (item[2], int(item[0])))
+        for code, year, week in keys:
+            meta = directory.get(code)
+            if meta is None:
+                excluded += 1
+                continue
+            lobby_value = denominator[(code, year, week)]
+            if lobby_value <= 0:
+                zeroes += 1
+                continue
+            fhw_value = numerator[(code, year, week)]
+            ratio = fhw_value / lobby_value
+            if not 0 <= ratio <= 1:
+                out_of_range += 1
+                continue
+            records.append({
+                "year": year, "week": week, "month": week_month.get(week, month_fallback(week)),
+                "ceco": code, "store": meta["store"], "dm": meta["dm"], "region": meta["region"],
+                "fhw": round(fhw_value, 6), "lobby": round(lobby_value, 6),
+                "ratio": round(ratio, 8), "source": source,
+            })
+        return records, excluded, zeroes, out_of_range
+
+    historical_fhw = select_periods(historical_fhw, 1, HISTORICAL_END_WEEK)
+    historical_lobby = select_periods(historical_lobby, 1, HISTORICAL_END_WEEK)
+    fhw = select_periods(fhw, LIVE_START_WEEK, None)
+    lobby = select_periods(lobby, LIVE_START_WEEK, None)
+    historical_ready_weeks, _, historical_synchronization = synchronize(historical_fhw, historical_lobby, strict=True)
+    ready_weeks, pending_weeks, synchronization = synchronize(fhw, lobby, strict=False)
+    historical_records, historical_excluded, historical_zeroes, historical_out_of_range = records_from(historical_fhw, historical_lobby, historical_ready_weeks, "histórico calculado")
+    live_records, live_excluded, live_zeroes, live_out_of_range = records_from(fhw, lobby, ready_weeks, "calculado")
+    excluded_no_directory = historical_excluded + live_excluded
+    zero_denominator = historical_zeroes + live_zeroes
+    out_of_range_ratios = historical_out_of_range + live_out_of_range
+    live_keys = set(fhw) & set(lobby)
 
     all_records = sorted(historical_records + live_records, key=lambda item: (item["week"], item["store"].casefold()))
 
@@ -447,8 +413,8 @@ def build() -> dict[str, Any]:
     coverage_by_week = []
     executive_weeks = []
     for item_week in live_weeks:
-        fhw_keys = {code for code, source_week in fhw if source_week == item_week}
-        lobby_keys = {code for code, source_week in lobby if source_week == item_week}
+        fhw_keys = {code for code, _, source_week in fhw if source_week == item_week}
+        lobby_keys = {code for code, _, source_week in lobby if source_week == item_week}
         published = [item for item in live_records if item["week"] == item_week]
         coverage_by_week.append({
             "week": item_week,
@@ -471,17 +437,18 @@ def build() -> dict[str, Any]:
             "opportunity": sum(1 for item in published if item["ratio"] < 0.08),
         })
 
-    source_duplicates = fhw_audit["duplicatesConsolidated"] + lobby_audit["duplicatesConsolidated"]
-    source_invalid = fhw_audit["invalidRows"] + lobby_audit["invalidRows"]
-    extreme_ratios = sum(1 for item in live_records if item["ratio"] > 1)
-    low_volume = sum(1 for item in live_records if item["lobby"] < 100)
-    pending_weeks = [item["week"] for item in synchronization if item["status"] == "pending"]
+    source_audits = (fhw_audit, lobby_audit, historical_fhw_audit, historical_lobby_audit)
+    source_duplicates = sum(item["duplicatesConsolidated"] for item in source_audits)
+    source_invalid = sum(item["invalidRows"] for item in source_audits)
+    extreme_ratios = out_of_range_ratios
+    low_volume = sum(1 for item in historical_records + live_records if item["lobby"] < 100)
     quality = {
         "status": "ok" if source_invalid == 0 and zero_denominator == 0 else "review",
         "sourceDuplicatesConsolidated": source_duplicates,
         "invalidSourceRows": source_invalid,
         "zeroDenominatorRows": zero_denominator,
         "extremeRatiosFlagged": extreme_ratios,
+        "outOfRangeRatiosExcluded": out_of_range_ratios,
         "lowVolumeRowsFlagged": low_volume,
         "latestCoverage": round(len(latest) / len(directory), 8) if directory else 0,
         "pendingWeeks": pending_weeks,
@@ -506,18 +473,23 @@ def build() -> dict[str, Any]:
                 "stores": len({item["ceco"] for item in items}),
             })
 
-    example = next((item for item in live_records if item["ceco"] == "38101" and item["week"] == 30), None)
+    example = next((item for item in latest if item["ceco"] == "38101"), latest[0] if latest else None)
     audit = {
         "status": "ok",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "formula": "AVG(FHW / Bebidas Lobby) por tienda",
         "target": TARGET,
         "latestCompleteWeek": latest_week,
-        "sources": {"fhw": fhw_audit, "lobby": lobby_audit, "reference": reference_audit},
+        "sources": {
+            "fhw": fhw_audit, "lobby": lobby_audit,
+            "historicalFhw": historical_fhw_audit, "historicalLobby": historical_lobby_audit,
+            "reference": reference_audit,
+        },
         "joins": {
             "liveKeysFhw": len(fhw),
             "liveKeysLobby": len(lobby),
             "intersectedKeys": len(live_keys),
+            "historicalIntersectedKeys": len(set(historical_fhw) & set(historical_lobby)),
             "publishedLiveRows": len(live_records),
             "publishedHistoricalRows": len(historical_records),
             "excludedNoApplicableDirectory": excluded_no_directory,
@@ -532,7 +504,7 @@ def build() -> dict[str, Any]:
         },
         "quality": quality,
         "executiveWeeks": executive_weeks,
-        "example38101w30": example,
+        "exampleLatest": example,
     }
     payload = {
         "meta": {
@@ -550,14 +522,15 @@ def build() -> dict[str, Any]:
             },
             "historyFiles": {},
             "weeksWithSynchronizedInputs": live_weeks,
-            "weeksDirectOnly": sorted({item["week"] for item in historical_records}),
-            "historyPolicy": "Semanas 1-29 usan el porcentaje directo por tienda; semanas 30+ calculan FHW/Lobby por tienda. Todos los alcances muestran el promedio de porcentajes válidos.",
+            "historyPolicy": "Semanas 1-34 y 35+ calculan FHW / Bebidas Lobby por tienda; todos los alcances muestran el promedio de porcentajes válidos.",
+            "historicalWeeks": historical_ready_weeks,
             "updateState": {
                 "readyWeeks": live_weeks,
                 "pendingWeeks": pending_weeks,
                 "latestReadyWeek": latest_week,
                 "synchronization": synchronization,
             },
+            "historicalSynchronization": historical_synchronization,
             "latestStores": len(latest),
             "organization": {
                 "regions": len(hierarchy),
@@ -590,11 +563,9 @@ def build() -> dict[str, Any]:
         month_records = [item for item in historical_records if item["month"] == month]
         if not month_records:
             continue
-        weeks = {item["week"] for item in month_records}
-        month_dm = [item for item in historical_dm if item["week"] in weeks]
         filename = f"{month.casefold()}.json"
         payload["meta"]["historyFiles"][month] = f"data/history/{filename}"
-        atomic_json(history_next / filename, {"records": month_records, "historicalDm": month_dm})
+        atomic_json(history_next / filename, {"records": month_records, "historicalDm": []})
     if history_backup.exists():
         shutil.rmtree(history_backup)
     if history_output.exists():
