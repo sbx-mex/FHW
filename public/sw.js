@@ -1,19 +1,6 @@
-const CACHE = "fhw-v11";
-const CORE = ["./", "./manifest.webmanifest", "./data/fhw-dashboard.json", "./data/resources.json", "./data/juntemonos-mas.json", "./assets/logo-cada-taza-cuenta.webp", "./assets/damos-seguimiento.webp", "./assets/un-placer-haber-ayudado.webp", "./assets/fhw-nitido.gif", "./Toolkit_Cada_Taza_Cuenta.pdf"];
-self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting())));
-self.addEventListener("activate", (event) => event.waitUntil(Promise.all([
-  caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))),
-  self.registration.navigationPreload?.enable(),
-]).then(() => self.clients.claim())));
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(fetch(event.request).then((response) => {
-    if (response.ok) { const copy = response.clone(); caches.open(CACHE).then((cache) => cache.put(event.request, copy)); }
-    return response;
-  }).catch(async () => {
-    const cached = await caches.match(event.request);
-    if (cached) return cached;
-    if (event.request.mode === "navigate") return caches.match(new URL("./", self.registration.scope).href);
-    return new Response("Recurso no disponible", { status: 503 });
-  }));
-});
+/* Recuperación de caché. Los archivos de GitHub Pages ya incluyen versión en
+   su nombre, por eso este worker no intercepta recursos ni guarda HTML viejo. */
+self.addEventListener("install", (event) => event.waitUntil(self.skipWaiting()));
+self.addEventListener("activate", (event) => event.waitUntil(
+  caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("fhw-")).map((key) => caches.delete(key)))).then(() => self.clients.claim())
+));

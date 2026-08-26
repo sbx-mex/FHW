@@ -22,7 +22,7 @@ FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región e
 - Semana incompleta protegida: sólo se publica cuando existen FHW y Bebidas Lobby.
 - Menú **Descargar** con confirmación, PDF ejecutivo horizontal de una página y Excel XLSX con hojas `Dashboard`, `Detalle` y `Tendencia`.
 - Descarga del `Toolkit_Cada_Taza_Cuenta.pdf`.
-- PWA instalable y lectura en caché.
+- Inicio estable en GitHub Pages: sin caché persistente de JS/CSS para que cada publicación cargue sus archivos vigentes.
 - Auditoría JSON, pruebas unitarias y validación automática en GitHub Actions.
 
 ## Actualización semanal

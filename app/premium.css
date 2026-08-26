@@ -2,6 +2,10 @@
   grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) 190px;
 }
 
+/* Estado de fuentes integrado en la hoja principal: evita depender de un CSS
+   diferido al abrir el tablero. */
+.button.quiet{border-color:var(--line);color:var(--dark);background:#fff}.source-status{border:1px solid var(--line);background:var(--paper);border-radius:22px;grid-template-columns:minmax(260px,1fr) auto;align-items:center;gap:20px;margin-top:14px;padding:16px 20px;display:grid}.source-status.pending{background:#fffdf7;border-color:#e4c684}.source-status small{color:var(--muted);letter-spacing:.11em;font-size:.6rem;font-weight:900}.source-status h2{margin:4px 0;font-size:1.05rem}.source-status p{color:var(--muted);margin:0;font-size:.72rem;line-height:1.45}.source-status-facts{align-items:center;gap:10px;display:flex}.source-status-facts span{border-left:1px solid var(--line);gap:2px;min-width:88px;padding-left:10px;display:grid}.source-status-facts span small{font-size:.53rem}.source-status-facts strong{font-size:.72rem}@media (width<=780px){.source-status{grid-template-columns:1fr;gap:13px}.source-status-facts{flex-wrap:wrap}.source-status-facts .button{flex:1}}
+
 .scope-controls input {
   width: 100%;
   height: 45px;

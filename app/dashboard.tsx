@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { downloadDashboardPdf } from "./pdf-report";
 import { downloadDashboardXlsx } from "./xlsx-report";
-import "./input-status.css";
 
 type View="region"|"dm"|"store";
 type Row={year:number;week:number;month:string;ceco:string;store:string;dm:string;region:string;fhw:number|null;lobby:number|null;ratio:number;source:string};
@@ -48,7 +47,9 @@ export default function Dashboard(){
   const historyRequested=useRef(new Set<string>()),urlReady=useRef(false),exportRef=useRef<HTMLDetailsElement>(null);
 
   useEffect(()=>{Promise.all([fetch("data/fhw-dashboard.json").then((response)=>{if(!response.ok)throw new Error("No se pudo leer la base");return response.json();}),fetch("data/resources.json").then((response)=>response.json()),fetch("data/juntemonos-mas.json").then((response)=>response.json())]).then(([payload,resourcePayload,initiativePayload]:[Payload,ResourceConfig,Initiative])=>{setData(payload);setResources(resourcePayload);setInitiative(initiativePayload);const params=new URLSearchParams(location.search),requestedMonths=(params.get("meses")??params.get("mes")??"").split("|").filter((item)=>payload.meta.months.includes(item)),requestedWeeks=(params.get("semanas")??params.get("semana")??"").split("|").map(Number).filter((item)=>payload.meta.weeks.includes(item)),requestedView=params.get("vista") as View|null;setMonthsSelected(requestedMonths);setWeeksSelected(requestedWeeks);setView(requestedView&&LEVELS.includes(requestedView)?requestedView:"region");setRegion(params.get("region")??"");setDm(params.get("dm")??"");setTrendPeriod(params.get("periodo")==="week"?"week":"month");urlReady.current=true;}).catch((reason)=>setError(reason instanceof Error?reason.message:"No se pudo cargar el tablero"));},[]);
-  useEffect(()=>{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>undefined);},[]);
+  // GitHub Pages publica archivos con nombre versionado. Retiramos cualquier
+  // worker anterior para impedir que un caché legado deje el tablero vacío.
+  useEffect(()=>{if("serviceWorker" in navigator)navigator.serviceWorker.getRegistrations().then((registrations)=>Promise.all(registrations.map((registration)=>registration.unregister()))).catch(()=>undefined);},[]);
   useEffect(()=>{if(!data)return;const targets=monthsSelected.length?monthsSelected:data.meta.months,pending=targets.filter((item)=>data.meta.historyFiles[item]&&!historyRequested.current.has(item));if(!pending.length)return;pending.forEach((item)=>historyRequested.current.add(item));queueMicrotask(()=>setHistoryLoading(true));Promise.all(pending.map(async(item)=>{const response=await fetch(data.meta.historyFiles[item]);if(!response.ok)throw new Error(`No se pudo leer ${item}`);return response.json() as Promise<{records:Row[]}>;})).then((items)=>{setHistoryRows((current)=>[...current,...items.flatMap((item)=>item.records)]);setHistoryError("");}).catch((reason)=>{pending.forEach((item)=>historyRequested.current.delete(item));setHistoryError(reason instanceof Error?reason.message:"Histórico parcial");}).finally(()=>setHistoryLoading(false));},[data,monthsSelected]);
   useEffect(()=>{if(!data||!urlReady.current)return;const params=new URLSearchParams({vista:view});if(monthsSelected.length)params.set("meses",monthsSelected.join("|"));if(weeksSelected.length)params.set("semanas",weeksSelected.join("|"));if(region)params.set("region",region);if(dm)params.set("dm",dm);if(trendPeriod==="week")params.set("periodo","week");history.replaceState(null,"",`${location.pathname}?${params}`);},[data,view,monthsSelected,weeksSelected,region,dm,trendPeriod]);
 
