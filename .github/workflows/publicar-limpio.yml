@@ -65,7 +65,6 @@ jobs:
           PY
       - name: Publicar sólo salidas vigentes
         run: |
-          rm -f public/assets/fhw-nitido.gif
           git add -A docs public/data public/assets
           if git diff --cached --quiet; then
             echo "Sin cambios generados."
