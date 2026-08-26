@@ -13,6 +13,8 @@ class PipelineTests(unittest.TestCase):
     def setUpClass(cls):
         build_data.build()
         cls.audit = json.loads((ROOT / "public/data/data-audit.json").read_text(encoding="utf-8"))
+        cls.input_status = json.loads((ROOT / "public/data/input-status.json").read_text(encoding="utf-8"))
+        cls.pending_review = json.loads((ROOT / "public/data/revision/pending-weeks.json").read_text(encoding="utf-8"))
         cls.payload = json.loads((ROOT / "public/data/fhw-dashboard.json").read_text(encoding="utf-8"))
         cls.records = list(cls.payload["records"])
         for filename in cls.payload["meta"]["historyFiles"].values():
@@ -158,6 +160,19 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(1 <= row["week"] <= build_data.HISTORICAL_END_WEEK for row in historical))
         self.assertTrue(all(row["week"] >= build_data.LIVE_START_WEEK for row in live))
         self.assertEqual(self.payload["meta"]["historicalWeeks"], list(range(1, 35)))
+
+    def test_input_status_makes_the_sources_navigable(self):
+        self.assertEqual(self.input_status["historical"]["status"], "ready")
+        self.assertEqual(self.input_status["historical"]["weeks"], list(range(1, 35)))
+        self.assertEqual(len(self.input_status["sources"]), 4)
+        self.assertTrue(all(item["file"] for item in self.input_status["sources"]))
+        self.assertEqual(self.payload["meta"]["inputStatusFile"], "data/input-status.json")
+
+    def test_pending_review_explains_unpublished_weeks(self):
+        pending = self.payload["meta"]["updateState"]["pendingWeeks"]
+        review_weeks = [item["week"] for item in self.pending_review["weeks"]]
+        self.assertEqual(review_weeks, pending)
+        self.assertEqual(self.payload["meta"]["pendingReviewFile"], "data/revision/pending-weeks.json")
 
 
 if __name__ == "__main__":

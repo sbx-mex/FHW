@@ -27,7 +27,7 @@ FHW suma `Vaso Vidrio`, `Vaso Vidrio N` y `Taza Bebida Cal`. Para DM y Región e
 
 ## Actualización semanal
 
-1. Sustituye `input/CTC_FHW.csv` y `input/CTC_Bebidas_Lobby.csv`.
+1. Consulta `input/ESTADO_DE_CARGA.md` y sustituye únicamente `input/CTC_FHW.csv` y `input/CTC_Bebidas_Lobby.csv`.
 2. Conserva sus nombres; el motor detecta el encabezado aunque el CSV incluya texto de Business Intelligence antes de la tabla.
 3. Ejecuta:
 
@@ -39,6 +39,8 @@ npm run build
 ```
 
 La salida web se genera en `public/data/fhw-dashboard.json` y la reconciliación en `public/data/data-audit.json`.
+
+El estado legible de cada fuente queda en `public/data/input-status.json`. Si el corte no se publica, descarga `public/data/revision/pending-weeks.json`: identifica los CeCos que sólo existen en FHW, sólo existen en Lobby y los que no están en el directorio.
 
 El histórico se divide por mes en `public/data/history/`; así el tablero abre rápido y sólo descarga los meses seleccionados.
 
@@ -60,6 +62,8 @@ La versión lista para publicar queda en `docs/`. En **Settings → Pages**, sel
 | `CTC_Bebidas_Lobby.csv` | Denominador operativo desde semana 35. |
 | `Directorio_FHW.xlsx` | Nombre de tienda, Región, DM y aplicación. Si existe `Aplica`, sólo acepta `Sí`; si no, usa `Estatus = Abierta`. |
 | `Base_Año_Mes_Sem.xlsx` | Calendario opcional con `Año, Mes, Semana`; sustituye el calendario del libro de referencia. |
+
+No conservar `FHW_Sem1_29.csv`; el workflow manual **Retirar motor histórico anterior** lo elimina después de validar el nuevo motor.
 
 El `Directorio_FHW.xlsx` incluido usa `CeCo`, `Tienda`, `Región`, `DM` y `Aplica`; sólo se publican filas con `Aplica = Sí`.
 

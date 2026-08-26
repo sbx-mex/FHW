@@ -454,6 +454,50 @@ def build() -> dict[str, Any]:
         "pendingWeeks": pending_weeks,
         "synchronization": synchronization,
     }
+    def source_summary(name: str, audit_item: dict[str, Any], data: dict[tuple[str, int, int], float], period: str) -> dict[str, Any]:
+        weeks = sorted({week for _, _, week in data})
+        return {
+            "name": name, "file": audit_item["file"], "period": period,
+            "status": "ready" if weeks else "missing", "rows": audit_item["rows"],
+            "validKeys": len(data), "weeks": weeks,
+            "weekRange": f"S{weeks[0]}–S{weeks[-1]}" if weeks else "Sin semanas",
+            "sha256": audit_item["sha256"],
+        }
+    input_status = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "title": "Estado de fuentes FHW",
+        "policy": "Histórico: semanas 1–34. Operación: semana 35 en adelante. Cada semana operativa requiere 90% de coincidencia CeCo.",
+        "historical": {
+            "status": "ready" if historical_ready_weeks == list(range(1, HISTORICAL_END_WEEK + 1)) else "review",
+            "weeks": historical_ready_weeks,
+            "synchronization": historical_synchronization,
+        },
+        "operational": {
+            "status": "ready" if ready_weeks else "pending",
+            "readyWeeks": ready_weeks, "pendingWeeks": pending_weeks,
+            "synchronization": synchronization,
+        },
+        "sources": [
+            source_summary("FHW histórico", historical_fhw_audit, historical_fhw, "S1–S34"),
+            source_summary("Bebidas Lobby histórico", historical_lobby_audit, historical_lobby, "S1–S34"),
+            source_summary("FHW operativo", fhw_audit, fhw, "S35+"),
+            source_summary("Bebidas Lobby operativo", lobby_audit, lobby, "S35+"),
+        ],
+    }
+    review_payload = {"generatedAt": input_status["generatedAt"], "weeks": []}
+    for item in synchronization:
+        if item["status"] != "pending":
+            continue
+        item_week = item["week"]
+        fhw_codes = {code for code, _, week in fhw if week == item_week}
+        lobby_codes = {code for code, _, week in lobby if week == item_week}
+        review_payload["weeks"].append({
+            **item,
+            "reason": "Se requiere al menos 90% de coincidencia entre FHW y Bebidas Lobby.",
+            "onlyFhw": sorted(fhw_codes - lobby_codes, key=int),
+            "onlyLobby": sorted(lobby_codes - fhw_codes, key=int),
+            "notInDirectory": sorted((fhw_codes | lobby_codes) - set(directory), key=int),
+        })
 
     # Cada nivel promedia el porcentaje calculado por tienda.
     weekly_rollups: dict[str, list[dict[str, Any]]] = {"region": [], "dm": []}
@@ -521,6 +565,8 @@ def build() -> dict[str, Any]:
                 for month in MONTHS if any(item["month"] == month for item in all_records)
             },
             "historyFiles": {},
+            "inputStatusFile": "data/input-status.json",
+            "pendingReviewFile": "data/revision/pending-weeks.json",
             "weeksWithSynchronizedInputs": live_weeks,
             "historyPolicy": "Semanas 1-34 y 35+ calculan FHW / Bebidas Lobby por tienda; todos los alcances muestran el promedio de porcentajes válidos.",
             "historicalWeeks": historical_ready_weeks,
@@ -575,6 +621,8 @@ def build() -> dict[str, Any]:
         shutil.rmtree(history_backup)
     atomic_json(OUTPUT / "fhw-dashboard.json", payload)
     atomic_json(OUTPUT / "data-audit.json", audit, compact=False)
+    atomic_json(OUTPUT / "input-status.json", input_status, compact=False)
+    atomic_json(OUTPUT / "revision" / "pending-weeks.json", review_payload, compact=False)
     return audit
 
 
