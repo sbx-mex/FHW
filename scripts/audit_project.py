@@ -91,7 +91,7 @@ def main() -> int:
         "Optimized background": ROOT / "public/assets/fondo-dashboard-fhw.webp",
         "Export confirmation image": ROOT / "public/assets/damos-seguimiento.webp",
         "Export success image": ROOT / "public/assets/un-placer-haber-ayudado.webp",
-        "Review GIF": ROOT / "public/assets/fhw-nitido.gif",
+        "Review video": ROOT / "public/assets/fhw-revision.mp4",
     }.items(): check(name, path.is_file())
     build_script = (ROOT / "scripts/build-verified.sh").read_text(encoding="utf-8")
     check("Permission-independent build", 'exec bash "${script_dir}/sites-env.sh"' in build_script)
@@ -128,7 +128,7 @@ def main() -> int:
     improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "function list" in pdf_source and "columns=items.length>7?2:1" in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas.")
     improvement(8, "Exportación directa", "ExportDialog" in dashboard_source and "downloadDashboardPdf" in dashboard_source and "window.print" not in dashboard_source and "Guardar PDF" not in dashboard_source and "application/pdf" in pdf_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal y Excel XLSX se descargan directo; al finalizar sólo queda Cerrar.")
     improvement(9, "Responsive y PWA", (ROOT / "public/manifest.webmanifest").is_file() and (ROOT / "public/sw.js").is_file() and "safe-area-inset" in (ROOT / "app/mobile.css").read_text(encoding="utf-8"), "Navegación táctil y área segura para iOS/Android.")
-    improvement(10, "PDF legible por periodo", "conciseRange" in dashboard_source and "Inicio S" in dashboard_source and "const step=Math.max(1,Math.ceil((points.length-1)/6))" in pdf_source and "fhw-nitido.gif" in dashboard_source, "Python protege el diseño: el PDF resume rangos amplios con inicio–fin, limita etiquetas de gráfica e integra la revisión amable.")
+    improvement(10, "Video seguro", "conciseRange" in dashboard_source and "playsInline" in dashboard_source and "muted" in dashboard_source and "fhw-revision.mp4" in dashboard_source, "El video se reproduce sin sonido, en bucle y sin abrir pantalla completa en móvil.")
     errors = [item for item in checks if item["status"] != "ok"]
     improvement_errors = [item for item in improvements if item["status"] != "ok"]
     report = {

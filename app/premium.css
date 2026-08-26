@@ -393,7 +393,7 @@
 .review-card p { margin: 4px 0 0; }
 .review-card h2 { font-size: 1rem; }
 .review-card p { color: var(--muted); font-size: .72rem; }
-.review-card img {
+.review-card img,.review-card video {
   width: 138px;
   height: 124px;
   object-fit: cover;
@@ -500,7 +500,7 @@
     padding-left: 15px;
   }
 
-  .review-card img { width: 112px; height: 110px; }
+  .review-card img,.review-card video { width: 112px; height: 110px; }
 
   .export-dialog-card > img {
     min-height: 130px;
