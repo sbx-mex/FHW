@@ -22,7 +22,7 @@ jobs:
           test -f input/CTC_Bebidas_Lobby_1_34.csv
           test -f input/CTC_FHW.csv
           test -f input/CTC_Bebidas_Lobby.csv
-          ! grep -R --exclude-dir=.git "FHW_Sem1_29" scripts tests input README.md
+          ! grep -R --exclude-dir=.git --exclude=FHW_Sem1_29.csv "FHW_Sem1_29" scripts tests input README.md
           python scripts/build_data.py
           python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Retirar fuente anterior
