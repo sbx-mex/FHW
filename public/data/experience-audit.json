@@ -61,9 +61,9 @@
     },
     {
       "number": 10,
-      "name": "PDF legible por periodo",
+      "name": "Video seguro",
       "status": "ok",
-      "detail": "Python protege el diseño: el PDF resume rangos amplios con inicio–fin, limita etiquetas de gráfica e integra la revisión amable."
+      "detail": "El video se reproduce sin sonido, en bucle y sin abrir pantalla completa en móvil."
     }
   ],
   "errors": []
