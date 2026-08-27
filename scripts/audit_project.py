@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from build_data import HISTORICAL_END_WEEK
+
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED = {"node_modules", ".git", ".sites-runtime", ".next", "dist", "outputs", "work"}
 MAX_FILE = 25 * 1024 * 1024
@@ -136,10 +138,11 @@ def main() -> int:
     average_rollups = payload["meta"].get("averageRollups", {}).get("national", [])
     improvement(1, "Promedio correcto", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda", "Calcula cada tienda y después promedia; no suma porcentajes ni divide totales.")
     improvement(2, "Cruce sincronizado", all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"), "El mismo CeCo y semana debe existir en numerador y denominador.")
-    improvement(3, "Semanas futuras automáticas", dynamic_latest == payload["meta"]["latestCompleteWeek"] and bool(pending_weeks), "Detecta semanas posteriores y deja pendientes las fuentes incompletas.")
+    improvement(3, "Semanas futuras automáticas", dynamic_latest == payload["meta"]["latestCompleteWeek"] and not any(row["week"] in pending_weeks and row["source"] == "calculado" for row in records), "Detecta semanas posteriores y deja pendientes las fuentes incompletas cuando existan, sin exigir una semana pendiente para validar el corte vigente.")
     historical_weeks = payload["meta"].get("historicalWeeks", [])
-    check("Historical engine range", historical_weeks == list(range(1, 35)), str(historical_weeks))
-    improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años.")
+    historical_average_rollups = [item for item in average_rollups if item["week"] <= HISTORICAL_END_WEEK]
+    check("Historical engine range", historical_weeks == list(range(1, HISTORICAL_END_WEEK + 1)), str(historical_weeks))
+    improvement(4, "Histórico seguro", len(historical_average_rollups) == HISTORICAL_END_WEEK and all(0 <= item["ratio"] <= 1 for item in historical_average_rollups), "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años; las semanas vigentes posteriores se auditan por separado.")
     improvement(5, "Alcance directo", "function MultiSelect" not in dashboard_source and 'className="period-filters"' not in dashboard_source and "Aplicar y cerrar" not in dashboard_source and "store-search" in dashboard_source, "El tablero elimina filtros redundantes de Mes y Semana; Región, DM y Tienda concentran el análisis.")
     improvement(6, "Interfaz simplificada", "source-status" not in dashboard_source and "Ver fuentes" not in dashboard_source and "Revisar cruces" not in dashboard_source, "Oculta el estado técnico de carga y deja la lectura ejecutiva del desempeño.")
     improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "function list" in pdf_source and "columns=items.length>7?2:1" in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas.")

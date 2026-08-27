@@ -18,6 +18,12 @@ if [[ ! -x "${vinext}" ]]; then
   exit 69
 fi
 
+build_dir="${SITES_PROJECT_ROOT}/dist"
+if [[ -d "${build_dir}" ]]; then
+  echo "Removing previous build output..."
+  rm -rf -- "${build_dir}"
+fi
+
 echo "Running bounded vinext build..."
 timeout \
   --signal=TERM \
