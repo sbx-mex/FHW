@@ -130,9 +130,13 @@ class PipelineTests(unittest.TestCase):
 
     def test_historical_average_covers_january_to_august(self):
         rollups = self.payload["meta"]["averageRollups"]["national"]
-        self.assertEqual([item["week"] for item in rollups], list(range(1, 35)))
-        self.assertTrue(all(0 <= item["ratio"] <= 1 for item in rollups))
-        self.assertTrue(all(item["aboveTarget"] <= item["stores"] for item in rollups))
+        historical_rollups = [item for item in rollups if item["week"] <= build_data.HISTORICAL_END_WEEK]
+        self.assertEqual(
+            [item["week"] for item in historical_rollups],
+            list(range(1, build_data.HISTORICAL_END_WEEK + 1)),
+        )
+        self.assertTrue(all(0 <= item["ratio"] <= 1 for item in historical_rollups))
+        self.assertTrue(all(item["aboveTarget"] <= item["stores"] for item in historical_rollups))
 
     def test_multiweek_result_is_simple_average_of_percentages(self):
         rows = [row for row in self.records if row["week"] in {30, 31, 32, 33, 34} and row["source"] == "histórico calculado"]
@@ -159,11 +163,17 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(historical)
         self.assertTrue(all(1 <= row["week"] <= build_data.HISTORICAL_END_WEEK for row in historical))
         self.assertTrue(all(row["week"] >= build_data.LIVE_START_WEEK for row in live))
-        self.assertEqual(self.payload["meta"]["historicalWeeks"], list(range(1, 35)))
+        self.assertEqual(
+            self.payload["meta"]["historicalWeeks"],
+            list(range(1, build_data.HISTORICAL_END_WEEK + 1)),
+        )
 
     def test_input_status_makes_the_sources_navigable(self):
         self.assertEqual(self.input_status["historical"]["status"], "ready")
-        self.assertEqual(self.input_status["historical"]["weeks"], list(range(1, 35)))
+        self.assertEqual(
+            self.input_status["historical"]["weeks"],
+            list(range(1, build_data.HISTORICAL_END_WEEK + 1)),
+        )
         self.assertEqual(len(self.input_status["sources"]), 4)
         self.assertTrue(all(item["file"] for item in self.input_status["sources"]))
         self.assertEqual(self.payload["meta"]["inputStatusFile"], "data/input-status.json")
