@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-26T06:05:38.611858+00:00",
+  "generatedAt": "2026-08-27T05:18:13.254895+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 0,
@@ -17,11 +17,11 @@
     "lobby": {
       "file": "CTC_Bebidas_Lobby.csv",
       "headerRow": 11,
-      "rows": 936,
-      "validKeys": 936,
+      "rows": 937,
+      "validKeys": 937,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "c4a86c2b987bd6a3a6a078d6834b0ec740ffd7d3f7b5078c7a13a1d2c6e57de5"
+      "sha256": "04b99743bd42eedaf79d2058bdc791cc74f63c0d701099968d783032f6493378"
     },
     "historicalFhw": {
       "file": "CTC_FHW_1_34.csv",
@@ -55,7 +55,7 @@
   },
   "joins": {
     "liveKeysFhw": 807,
-    "liveKeysLobby": 936,
+    "liveKeysLobby": 937,
     "intersectedKeys": 807,
     "historicalIntersectedKeys": 30109,
     "publishedLiveRows": 0,
@@ -87,11 +87,11 @@
         "week": 35,
         "status": "pending",
         "fhwStores": 807,
-        "lobbyStores": 936,
+        "lobbyStores": 937,
         "matchedStores": 807,
         "onlyFhw": 0,
-        "onlyLobby": 129,
-        "matchRate": 0.86217949
+        "onlyLobby": 130,
+        "matchRate": 0.86125934
       }
     ]
   },

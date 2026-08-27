@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-26T06:05:38.609151+00:00",
+  "generatedAt": "2026-08-27T05:18:13.252651+00:00",
   "title": "Estado de fuentes FHW",
   "policy": "Histórico: semanas 1–34. Operación: semana 35 en adelante. Cada semana operativa requiere 90% de coincidencia CeCo.",
   "historical": {
@@ -394,11 +394,11 @@
         "week": 35,
         "status": "pending",
         "fhwStores": 807,
-        "lobbyStores": 936,
+        "lobbyStores": 937,
         "matchedStores": 807,
         "onlyFhw": 0,
-        "onlyLobby": 129,
-        "matchRate": 0.86217949
+        "onlyLobby": 130,
+        "matchRate": 0.86125934
       }
     ]
   },
@@ -513,13 +513,13 @@
       "file": "CTC_Bebidas_Lobby.csv",
       "period": "S35+",
       "status": "ready",
-      "rows": 936,
-      "validKeys": 936,
+      "rows": 937,
+      "validKeys": 937,
       "weeks": [
         35
       ],
       "weekRange": "S35–S35",
-      "sha256": "c4a86c2b987bd6a3a6a078d6834b0ec740ffd7d3f7b5078c7a13a1d2c6e57de5"
+      "sha256": "04b99743bd42eedaf79d2058bdc791cc74f63c0d701099968d783032f6493378"
     }
   ]
 }

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-26T06:05:38.609151+00:00",
+  "generatedAt": "2026-08-27T05:18:13.252651+00:00",
   "weeks": [
     {
       "week": 35,
       "status": "pending",
       "fhwStores": 807,
-      "lobbyStores": 936,
+      "lobbyStores": 937,
       "matchedStores": 807,
       "onlyFhw": [],
       "onlyLobby": [
@@ -53,6 +53,7 @@
         "38445",
         "38461",
         "38465",
+        "38470",
         "38478",
         "38502",
         "38505",
@@ -139,7 +140,7 @@
         "43176",
         "43204"
       ],
-      "matchRate": 0.86217949,
+      "matchRate": 0.86125934,
       "reason": "Se requiere al menos 90% de coincidencia entre FHW y Bebidas Lobby.",
       "notInDirectory": [
         "38151",
