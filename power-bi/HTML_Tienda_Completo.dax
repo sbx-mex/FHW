@@ -1,10 +1,9 @@
-HTML Tienda - Impacto =
+HTML Tienda - FHW =
 VAR Tienda =
     COALESCE ( SELECTEDVALUE ( 'FHW_Modelo'[Tienda] ), "Todas las tiendas" )
 VAR DM =
     COALESCE ( SELECTEDVALUE ( 'FHW_Modelo'[DM] ), "Todos los DM" )
-VAR SemanaActual =
-    MAX ( 'FHW_Modelo'[SemanaID] )
+VAR SemanaActual = MAX ( 'FHW_Modelo'[SemanaID] )
 VAR SemanaAnterior =
     MAXX (
         FILTER ( ALL ( 'FHW_Modelo'[SemanaID] ), 'FHW_Modelo'[SemanaID] < SemanaActual ),
@@ -16,16 +15,13 @@ VAR CTCActual =
         CALCULATE ( DIVIDE ( SUM ( 'FHW_Modelo'[FHW] ), SUM ( 'FHW_Modelo'[Bebidas Lobby] ) ) )
     )
 VAR CTCAnterior =
-    IF (
-        NOT ISBLANK ( SemanaAnterior ),
-        CALCULATE (
-            AVERAGEX (
-                VALUES ( 'FHW_Modelo'[CeCo] ),
-                CALCULATE ( DIVIDE ( SUM ( 'FHW_Modelo'[FHW] ), SUM ( 'FHW_Modelo'[Bebidas Lobby] ) ) )
-            ),
-            REMOVEFILTERS ( 'FHW_Modelo'[SemanaID] ),
-            'FHW_Modelo'[SemanaID] = SemanaAnterior
-        )
+    CALCULATE (
+        AVERAGEX (
+            VALUES ( 'FHW_Modelo'[CeCo] ),
+            CALCULATE ( DIVIDE ( SUM ( 'FHW_Modelo'[FHW] ), SUM ( 'FHW_Modelo'[Bebidas Lobby] ) ) )
+        ),
+        REMOVEFILTERS ( 'FHW_Modelo'[SemanaID] ),
+        'FHW_Modelo'[SemanaID] = SemanaAnterior
     )
 VAR Movimiento = CTCActual - CTCAnterior
 VAR FHWValor = SUM ( 'FHW_Modelo'[FHW] )
@@ -70,8 +66,8 @@ VAR PuntosSVG =
         VAR SemanaPunto = 'FHW_Modelo'[SemanaID]
         VAR ValorPunto = [@CTC]
         VAR Posicion = COUNTROWS ( FILTER ( Tendencia, 'FHW_Modelo'[SemanaID] <= SemanaPunto ) )
-        VAR X = IF ( TotalPuntos = 1, 150, 16 + ( Posicion - 1 ) * 268 / ( TotalPuntos - 1 ) )
-        VAR Y = 82 - DIVIDE ( ValorPunto - MinCTC, RangoCTC ) * 58
+        VAR X = IF ( TotalPuntos = 1, 350, 60 + ( Posicion - 1 ) * 580 / ( TotalPuntos - 1 ) )
+        VAR Y = 178 - DIVIDE ( ValorPunto - MinCTC, RangoCTC ) * 112
         RETURN FORMAT ( X, "0.0", "en-US" ) & "," & FORMAT ( Y, "0.0", "en-US" ),
         " ",
         'FHW_Modelo'[SemanaID], ASC
@@ -82,62 +78,33 @@ VAR MarcadoresSVG =
         VAR SemanaPunto = 'FHW_Modelo'[SemanaID]
         VAR ValorPunto = [@CTC]
         VAR Posicion = COUNTROWS ( FILTER ( Tendencia, 'FHW_Modelo'[SemanaID] <= SemanaPunto ) )
-        VAR X = IF ( TotalPuntos = 1, 150, 16 + ( Posicion - 1 ) * 268 / ( TotalPuntos - 1 ) )
-        VAR Y = 82 - DIVIDE ( ValorPunto - MinCTC, RangoCTC ) * 58
+        VAR X = IF ( TotalPuntos = 1, 350, 60 + ( Posicion - 1 ) * 580 / ( TotalPuntos - 1 ) )
+        VAR Y = 178 - DIVIDE ( ValorPunto - MinCTC, RangoCTC ) * 112
         RETURN
-            "<circle cx='" & FORMAT ( X, "0.0", "en-US" ) & "' cy='" & FORMAT ( Y, "0.0", "en-US" ) & "' r='4.5' fill='#FFFFFF' stroke='#CBA258' stroke-width='3'/>" &
-            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='" & FORMAT ( MAX ( 12, Y - 9 ), "0.0", "en-US" ) & "' text-anchor='middle' font-size='9' font-weight='700' fill='#1E3932'>" & FORMAT ( ValorPunto, "0.0%" ) & "</text>" &
-            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='101' text-anchor='middle' font-size='9' fill='#6B7770'>S" & FORMAT ( SemanaPunto, "0" ) & "</text>",
+            "<circle cx='" & FORMAT ( X, "0.0", "en-US" ) & "' cy='" & FORMAT ( Y, "0.0", "en-US" ) & "' r='6' fill='#FFFFFF' stroke='#C48B26' stroke-width='4'/>" &
+            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='" & FORMAT ( MAX ( 30, Y - 13 ), "0.0", "en-US" ) & "' text-anchor='middle' font-size='12' font-weight='700' fill='#1E3932'>" & FORMAT ( ValorPunto, "0.0%" ) & "</text>" &
+            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='212' text-anchor='middle' font-size='12' fill='#52665B'>S" & FORMAT ( MOD ( SemanaPunto, 100 ), "0" ) & "</text>",
         "",
         'FHW_Modelo'[SemanaID], ASC
     )
 VAR Color =
-    SWITCH ( TRUE (), ISBLANK ( Movimiento ), "#6B7770", Movimiento >= 0, "#00A862", "#C74634" )
+    SWITCH ( TRUE (), ISBLANK ( Movimiento ), "#6B7770", Movimiento >= 0, "#006241", "#C48B26" )
 VAR Flecha =
     SWITCH ( TRUE (), ISBLANK ( Movimiento ), "•", Movimiento >= 0, "▲", "▼" )
 VAR Estado =
-    SWITCH ( TRUE (), ISBLANK ( Movimiento ), "Sin comparación", Movimiento >= 0, "En avance", "Atención" )
-VAR Accion =
-    SWITCH (
-        TRUE (),
-        ISBLANK ( CTCActual ), "Selecciona una tienda y una semana.",
-        Movimiento >= 0, "Replica la práctica que funcionó.",
-        "Observa, ofrece vajilla y acuerda una acción."
-    )
+    SWITCH ( TRUE (), ISBLANK ( Movimiento ), "Sin comparación", Movimiento >= 0, "Avance sostenido", "Oportunidad localizada" )
+VAR Progreso = MIN ( 1, DIVIDE ( CTCActual, 0.15 ) )
+VAR Trazo = FORMAT ( Progreso, "0.000", "en-US" ) & " 1"
 VAR TiendaHtml = SUBSTITUTE ( SUBSTITUTE ( Tienda, "&", "&amp;" ), "<", "&lt;" )
 VAR DMHtml = SUBSTITUTE ( SUBSTITUTE ( DM, "&", "&amp;" ), "<", "&lt;" )
 RETURN
-    "<div style='font-family:Segoe UI,Arial,sans-serif;background:#F4F7F5;color:#1E3932;padding:18px;border-radius:18px;min-height:560px'>" &
-    "<div style='background:#006241;color:#FFF;border-radius:14px;padding:16px 18px'>" &
-    "<div style='font-size:10px;letter-spacing:1.4px;opacity:.82'>CADA TAZA CUENTA · TIENDA</div>" &
-    "<div style='font-size:27px;font-weight:700;margin-top:4px'>" & TiendaHtml & "</div>" &
-    "<div style='font-size:12px;opacity:.82;margin-top:3px'>" & DMHtml & " · S" & FORMAT ( SemanaActual, "0" ) & "</div></div>" &
-    "<div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:10px'>" &
-    "<div style='flex:1;min-width:210px;background:#FFF;border-radius:13px;padding:15px'>" &
-    "<div style='font-size:10px;letter-spacing:1px;color:#6B7770'>CTC ACTUAL</div>" &
-    "<div style='font-size:37px;font-weight:700;color:#006241;line-height:1.1;margin-top:5px'>" & FORMAT ( CTCActual, "0.0%" ) & "</div>" &
-    "<div style='font-size:11px;color:#6B7770;margin-top:4px'>FHW / Bebidas Lobby</div></div>" &
-    "<div style='flex:1;min-width:170px;background:#FFF;border-radius:13px;padding:15px;border-left:5px solid " & Color & "'>" &
-    "<div style='font-size:10px;letter-spacing:1px;color:#6B7770'>MOVIMIENTO</div>" &
-    "<div style='font-size:27px;font-weight:700;color:" & Color & ";line-height:1.15;margin-top:7px'>" & Flecha & " " & FORMAT ( Movimiento, "0.0%" ) & "</div>" &
-    "<div style='font-size:11px;color:" & Color & ";font-weight:700;margin-top:5px'>" & Estado & "</div></div>" &
-    "<div style='flex:1;min-width:170px;background:#FFF;border-radius:13px;padding:15px'>" &
-    "<div style='font-size:10px;letter-spacing:1px;color:#6B7770'>COBERTURA</div>" &
-    "<div style='font-size:27px;font-weight:700;margin-top:7px'>" & FORMAT ( Cobertura, "0.0%" ) & "</div>" &
-    "<div style='font-size:11px;color:#6B7770;margin-top:5px'>" & FORMAT ( ConUso, "#,0" ) & " / " & FORMAT ( Tiendas, "#,0" ) & " tiendas</div></div></div>" &
-    "<div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:10px'>" &
-    "<div style='flex:2;min-width:350px;background:#FFF;border-radius:13px;padding:15px'>" &
-    "<div style='display:flex;justify-content:space-between;align-items:center'><div style='font-size:10px;letter-spacing:1px;color:#6B7770'>TENDENCIA · ÚLTIMAS 8 SEMANAS</div><div style='font-size:11px;font-weight:700;color:" & Color & "'>" & Flecha & " " & FORMAT ( Movimiento, "0.0%" ) & "</div></div>" &
-    "<svg viewBox='0 0 300 105' style='width:100%;height:130px;margin-top:3px' role='img' aria-label='Tendencia CTC'>" &
-    "<line x1='15' y1='25' x2='285' y2='25' stroke='#E4ECE7' stroke-width='1'/>" &
-    "<line x1='15' y1='54' x2='285' y2='54' stroke='#E4ECE7' stroke-width='1'/>" &
-    "<line x1='15' y1='83' x2='285' y2='83' stroke='#E4ECE7' stroke-width='1'/>" &
-    "<polyline points='" & PuntosSVG & "' fill='none' stroke='#006241' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>" & MarcadoresSVG &
-    "</svg></div>" &
-    "<div style='flex:1;min-width:210px;background:#E8F1ED;border-radius:13px;padding:15px'>" &
-    "<div style='font-size:10px;letter-spacing:1px;color:#006241'>VOLUMEN</div>" &
-    "<div style='margin-top:13px'><div style='font-size:11px;color:#6B7770'>FHW</div><div style='font-size:22px;font-weight:700'>" & FORMAT ( FHWValor, "#,0" ) & "</div></div>" &
-    "<div style='margin-top:10px'><div style='font-size:11px;color:#6B7770'>BEBIDAS LOBBY</div><div style='font-size:22px;font-weight:700'>" & FORMAT ( LobbyValor, "#,0" ) & "</div></div></div></div>" &
-    "<div style='background:#1E3932;color:#FFF;border-radius:13px;padding:14px 16px;margin-top:10px;display:flex;justify-content:space-between;gap:12px;align-items:center'>" &
-    "<div><div style='font-size:10px;letter-spacing:1px;opacity:.7'>SIGUIENTE ACCIÓN</div><div style='font-size:15px;font-weight:700;margin-top:3px'>" & Accion & "</div></div>" &
-    "<div style='font-size:23px;color:#00A862'>→</div></div></div>"
+    "<div style='font-family:Segoe UI,Arial,sans-serif;background:#F4F7F5;color:#15241E;padding:16px 18px;min-height:620px'>" &
+    "<div style='background:#FFFFFF;border:1px solid #D7E2DC;border-radius:22px;padding:24px 28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap'>" &
+    "<div style='flex:1;min-width:280px'><div style='font-size:11px;font-weight:700;letter-spacing:1.4px;color:#567065'>TIENDA</div><div style='font-size:38px;font-weight:700;letter-spacing:-1.7px;margin-top:4px'>" & TiendaHtml & "</div><div style='font-size:13px;color:#52665B;margin-top:6px'>" & DMHtml & " · Semana " & FORMAT ( MOD ( SemanaActual, 100 ), "0" ) & "</div></div>" &
+    "<div style='width:118px;height:118px;position:relative'><svg viewBox='0 0 120 120' style='width:118px;height:118px;transform:rotate(-90deg)'><circle cx='60' cy='60' r='46' fill='none' stroke='#DCE9E3' stroke-width='9'/><circle cx='60' cy='60' r='46' fill='none' stroke='#006241' stroke-width='9' stroke-linecap='round' pathLength='1' stroke-dasharray='" & Trazo & "'/></svg><div style='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center'><b style='font-size:24px'>" & FORMAT ( CTCActual, "0.0%" ) & "</b><span style='font-size:9px;font-weight:700;color:#567065'>CTC</span></div></div>" &
+    "<div style='min-width:120px;border-left:1px solid #D7E2DC;padding-left:18px'><div style='font-size:10px;font-weight:700;letter-spacing:1px;color:#567065'>MOVIMIENTO</div><div style='font-size:22px;font-weight:700;color:" & Color & ";margin-top:7px'>" & Flecha & " " & FORMAT ( Movimiento, "0.0%" ) & "</div><div style='font-size:10px;color:#52665B;margin-top:3px'>vs. semana anterior</div></div>" &
+    "<div style='min-width:110px;border-left:1px solid #D7E2DC;padding-left:18px'><div style='font-size:10px;font-weight:700;letter-spacing:1px;color:#567065'>COBERTURA</div><div style='font-size:22px;font-weight:700;margin-top:7px'>" & FORMAT ( Cobertura, "0.0%" ) & "</div><div style='font-size:10px;color:#52665B;margin-top:3px'>" & FORMAT ( ConUso, "#,0" ) & " / " & FORMAT ( Tiendas, "#,0" ) & "</div></div>" &
+    "<div style='min-width:110px;border-left:1px solid #D7E2DC;padding-left:18px'><div style='font-size:10px;font-weight:700;letter-spacing:1px;color:#567065'>FHW</div><div style='font-size:22px;font-weight:700;margin-top:7px'>" & FORMAT ( FHWValor, "#,0" ) & "</div><div style='font-size:10px;color:#52665B;margin-top:3px'>Bebidas " & FORMAT ( LobbyValor, "#,0" ) & "</div></div></div>" &
+    "<div style='background:#FFFFFF;border:1px solid #D7E2DC;border-radius:20px;margin-top:14px;padding:18px 22px;display:flex;align-items:center;gap:17px'><div style='width:7px;height:54px;border-radius:9px;background:" & Color & "'></div><div><div style='font-size:10px;font-weight:700;letter-spacing:1.2px;color:#567065'>AHORA</div><div style='font-size:21px;font-weight:700;margin-top:4px;color:" & Color & "'>" & Estado & "</div><div style='font-size:12px;color:#52665B;margin-top:3px'>CTC " & FORMAT ( CTCActual, "0.0%" ) & " · Movimiento " & FORMAT ( Movimiento, "0.0%" ) & "</div></div></div>" &
+    "<div style='display:flex;gap:14px;margin-top:14px;flex-wrap:wrap'><div style='flex:2;min-width:560px;background:#FFFFFF;border:1px solid #D7E2DC;border-radius:20px;padding:22px'><div style='font-size:10px;font-weight:700;letter-spacing:1.2px;color:#567065'>TENDENCIA · ÚLTIMAS 8 SEMANAS</div><div style='font-size:21px;font-weight:700;margin-top:7px'>CTC por semana</div><svg viewBox='0 0 700 230' style='width:100%;height:285px;margin-top:8px' role='img' aria-label='Tendencia CTC por semana'><line x1='60' y1='48' x2='640' y2='48' stroke='#E4ECE7' stroke-width='1'/><line x1='60' y1='112' x2='640' y2='112' stroke='#E4ECE7' stroke-width='1'/><line x1='60' y1='178' x2='640' y2='178' stroke='#E4ECE7' stroke-width='1'/><polyline points='" & PuntosSVG & "' fill='none' stroke='#006241' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/>" & MarcadoresSVG & "</svg></div>" &
+    "<div style='flex:1;min-width:260px;background:#FFFFFF;border:1px solid #D7E2DC;border-radius:20px;padding:22px'><div style='font-size:10px;font-weight:700;letter-spacing:1.2px;color:#567065'>LECTURA RÁPIDA</div><div style='margin-top:22px;border-bottom:1px solid #E4ECE7;padding-bottom:17px'><div style='font-size:11px;color:#52665B'>CTC actual</div><div style='font-size:31px;font-weight:700;color:#006241;margin-top:4px'>" & FORMAT ( CTCActual, "0.0%" ) & "</div></div><div style='margin-top:17px;border-bottom:1px solid #E4ECE7;padding-bottom:17px'><div style='font-size:11px;color:#52665B'>Cambio semanal</div><div style='font-size:27px;font-weight:700;color:" & Color & ";margin-top:4px'>" & Flecha & " " & FORMAT ( Movimiento, "0.0%" ) & "</div></div><div style='margin-top:17px'><div style='font-size:11px;color:#52665B'>Bebidas Lobby</div><div style='font-size:27px;font-weight:700;margin-top:4px'>" & FORMAT ( LobbyValor, "#,0" ) & "</div></div></div></div></div>
