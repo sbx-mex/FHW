@@ -1,9 +1,9 @@
 .scope-controls {
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) 190px;
+  grid-template-columns: repeat(4, minmax(155px, 1fr)) minmax(155px, 190px);
 }
 
 .scope-controls:has(.store-search) {
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) 190px;
+  grid-template-columns: repeat(5, minmax(155px, 1fr)) minmax(155px, 190px);
 }
 
 .scope-controls input {
@@ -16,6 +16,106 @@
   color: var(--ink);
   font-size: .74rem;
   font-weight: 780;
+}
+
+.period-filter {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.period-filter > span {
+  color: var(--muted);
+  font-size: .59rem;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.multi-select {
+  position: relative;
+  align-self: end;
+}
+
+.multi-select summary {
+  display: flex;
+  height: 45px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #cbd9d2;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 12px;
+  color: var(--ink);
+  font-size: .74rem;
+  font-weight: 780;
+  list-style: none;
+  cursor: pointer;
+}
+
+.multi-select summary::-webkit-details-marker {
+  display: none;
+}
+
+.multi-select summary svg {
+  width: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.multi-select[open] summary {
+  border-color: var(--green);
+}
+
+.multi-select-list {
+  position: absolute;
+  z-index: 25;
+  top: 50px;
+  left: 0;
+  display: grid;
+  width: max(190px, 100%);
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 7px;
+  box-shadow: 0 14px 30px rgba(15, 45, 33, .14);
+}
+
+.multi-select-list button,
+.multi-select-list label {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: #fff;
+  padding: 8px 9px;
+  color: var(--ink);
+  font-size: .71rem;
+  font-weight: 760;
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-select-list button {
+  border-bottom: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  color: var(--green);
+}
+
+.multi-select-list button.selected,
+.multi-select-list label:hover {
+  background: var(--mint);
+}
+
+.multi-select-list input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
 }
 
 .ranking-list.compact-grid {
