@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "checksTotal": 40,
-  "checksOk": 40,
+  "checksTotal": 41,
+  "checksOk": 41,
   "improvementsTotal": 10,
   "improvementsOk": 10,
   "improvements": [
@@ -21,25 +21,25 @@
       "number": 3,
       "name": "Semanas futuras automáticas",
       "status": "ok",
-      "detail": "Detecta semanas posteriores y deja pendientes las fuentes incompletas."
+      "detail": "Detecta semanas posteriores y deja pendientes las fuentes incompletas cuando existan, sin exigir una semana pendiente para validar el corte vigente."
     },
     {
       "number": 4,
       "name": "Histórico seguro",
       "status": "ok",
-      "detail": "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años."
+      "detail": "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años; las semanas vigentes posteriores se auditan por separado."
     },
     {
       "number": 5,
-      "name": "Filtros rápidos",
+      "name": "Alcance directo",
       "status": "ok",
-      "detail": "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples."
+      "detail": "El tablero elimina filtros redundantes de Mes y Semana; Región, DM y Tienda concentran el análisis."
     },
     {
       "number": 6,
       "name": "Interfaz simplificada",
       "status": "ok",
-      "detail": "Oculta términos técnicos y deja sólo Semana o Mes."
+      "detail": "Oculta el estado técnico de carga y deja la lectura ejecutiva del desempeño."
     },
     {
       "number": 7,

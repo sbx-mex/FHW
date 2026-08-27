@@ -1,27 +1,27 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-27T05:18:13.254895+00:00",
+  "generatedAt": "2026-08-27T22:39:47.723591+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
-  "latestCompleteWeek": 0,
+  "latestCompleteWeek": 35,
   "sources": {
     "fhw": {
       "file": "CTC_FHW.csv",
       "headerRow": 9,
-      "rows": 5264,
-      "validKeys": 5264,
+      "rows": 852,
+      "validKeys": 852,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "725d42a5c70cf4d571a36cc387f6445ad3a8e6a4f00227766e07efeeb0f20aae"
+      "sha256": "0bd73df0c5a47a01d2086c2c20e9e7d0302d5085f33daae1faa16cd34260550d"
     },
     "lobby": {
       "file": "CTC_Bebidas_Lobby.csv",
       "headerRow": 11,
-      "rows": 937,
-      "validKeys": 937,
+      "rows": 939,
+      "validKeys": 939,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "04b99743bd42eedaf79d2058bdc791cc74f63c0d701099968d783032f6493378"
+      "sha256": "1e79a618fd8a93770a40aea368ac6facea06cdebb045ca79c4934460f33cdddd"
     },
     "historicalFhw": {
       "file": "CTC_FHW_1_34.csv",
@@ -54,21 +54,21 @@
     }
   },
   "joins": {
-    "liveKeysFhw": 807,
-    "liveKeysLobby": 937,
-    "intersectedKeys": 807,
+    "liveKeysFhw": 852,
+    "liveKeysLobby": 939,
+    "intersectedKeys": 850,
     "historicalIntersectedKeys": 30109,
-    "publishedLiveRows": 0,
+    "publishedLiveRows": 820,
     "publishedHistoricalRows": 28949,
-    "excludedNoApplicableDirectory": 1153,
+    "excludedNoApplicableDirectory": 1183,
     "zeroDenominator": 0
   },
   "latest": {
-    "stores": 0,
-    "fhw": 0,
-    "lobby": 0,
-    "averageRatio": 0,
-    "storesAtTarget": 0
+    "stores": 820,
+    "fhw": 65417.0,
+    "lobby": 744393.0,
+    "averageRatio": 0.09413813,
+    "storesAtTarget": 318
   },
   "quality": {
     "status": "ok",
@@ -78,23 +78,45 @@
     "extremeRatiosFlagged": 7,
     "outOfRangeRatiosExcluded": 7,
     "lowVolumeRowsFlagged": 7,
-    "latestCoverage": 0.0,
-    "pendingWeeks": [
-      35
-    ],
+    "latestCoverage": 0.9223847,
+    "pendingWeeks": [],
     "synchronization": [
       {
         "week": 35,
-        "status": "pending",
-        "fhwStores": 807,
-        "lobbyStores": 937,
-        "matchedStores": 807,
-        "onlyFhw": 0,
-        "onlyLobby": 130,
-        "matchRate": 0.86125934
+        "status": "ready",
+        "fhwStores": 852,
+        "lobbyStores": 939,
+        "matchedStores": 850,
+        "onlyFhw": 2,
+        "onlyLobby": 89,
+        "matchRate": 0.90521832
       }
     ]
   },
-  "executiveWeeks": [],
-  "exampleLatest": null
+  "executiveWeeks": [
+    {
+      "week": 35,
+      "month": "Sep",
+      "fhw": 65417.0,
+      "lobby": 744393.0,
+      "ratio": 0.09413813,
+      "stores": 820,
+      "aboveTarget": 318,
+      "nearTarget": 102,
+      "opportunity": 400
+    }
+  ],
+  "exampleLatest": {
+    "year": 2026,
+    "week": 35,
+    "month": "Sep",
+    "ceco": "38101",
+    "store": "Angel",
+    "dm": "Guadalupe Ibarra Martínez",
+    "region": "Centro Centro",
+    "fhw": 67.0,
+    "lobby": 1135.0,
+    "ratio": 0.05903084,
+    "source": "calculado"
+  }
 }
