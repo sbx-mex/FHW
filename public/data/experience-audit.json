@@ -31,9 +31,9 @@
     },
     {
       "number": 5,
-      "name": "Alcance directo",
+      "name": "Filtros de periodo",
       "status": "ok",
-      "detail": "El tablero elimina filtros redundantes de Mes y Semana; Región, DM y Tienda concentran el análisis."
+      "detail": "Mes y Semana permiten selección múltiple para acotar la revisión; Región, DM y Tienda conservan su navegación directa."
     },
     {
       "number": 6,
