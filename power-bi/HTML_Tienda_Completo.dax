@@ -76,6 +76,21 @@ VAR PuntosSVG =
         " ",
         'FHW_Modelo'[SemanaID], ASC
     )
+VAR MarcadoresSVG =
+    CONCATENATEX (
+        Tendencia,
+        VAR SemanaPunto = 'FHW_Modelo'[SemanaID]
+        VAR ValorPunto = [@CTC]
+        VAR Posicion = COUNTROWS ( FILTER ( Tendencia, 'FHW_Modelo'[SemanaID] <= SemanaPunto ) )
+        VAR X = IF ( TotalPuntos = 1, 150, 16 + ( Posicion - 1 ) * 268 / ( TotalPuntos - 1 ) )
+        VAR Y = 82 - DIVIDE ( ValorPunto - MinCTC, RangoCTC ) * 58
+        RETURN
+            "<circle cx='" & FORMAT ( X, "0.0", "en-US" ) & "' cy='" & FORMAT ( Y, "0.0", "en-US" ) & "' r='4.5' fill='#FFFFFF' stroke='#CBA258' stroke-width='3'/>" &
+            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='" & FORMAT ( MAX ( 12, Y - 9 ), "0.0", "en-US" ) & "' text-anchor='middle' font-size='9' font-weight='700' fill='#1E3932'>" & FORMAT ( ValorPunto, "0.0%" ) & "</text>" &
+            "<text x='" & FORMAT ( X, "0.0", "en-US" ) & "' y='101' text-anchor='middle' font-size='9' fill='#6B7770'>S" & FORMAT ( SemanaPunto, "0" ) & "</text>",
+        "",
+        'FHW_Modelo'[SemanaID], ASC
+    )
 VAR Color =
     SWITCH ( TRUE (), ISBLANK ( Movimiento ), "#6B7770", Movimiento >= 0, "#00A862", "#C74634" )
 VAR Flecha =
@@ -92,7 +107,7 @@ VAR Accion =
 VAR TiendaHtml = SUBSTITUTE ( SUBSTITUTE ( Tienda, "&", "&amp;" ), "<", "&lt;" )
 VAR DMHtml = SUBSTITUTE ( SUBSTITUTE ( DM, "&", "&amp;" ), "<", "&lt;" )
 RETURN
-    "<div style='font-family:Segoe UI,Arial,sans-serif;background:#F4F7F5;color:#1E3932;padding:18px;border-radius:18px'>" &
+    "<div style='font-family:Segoe UI,Arial,sans-serif;background:#F4F7F5;color:#1E3932;padding:18px;border-radius:18px;min-height:560px'>" &
     "<div style='background:#006241;color:#FFF;border-radius:14px;padding:16px 18px'>" &
     "<div style='font-size:10px;letter-spacing:1.4px;opacity:.82'>CADA TAZA CUENTA · TIENDA</div>" &
     "<div style='font-size:27px;font-weight:700;margin-top:4px'>" & TiendaHtml & "</div>" &
@@ -117,9 +132,8 @@ RETURN
     "<line x1='15' y1='25' x2='285' y2='25' stroke='#E4ECE7' stroke-width='1'/>" &
     "<line x1='15' y1='54' x2='285' y2='54' stroke='#E4ECE7' stroke-width='1'/>" &
     "<line x1='15' y1='83' x2='285' y2='83' stroke='#E4ECE7' stroke-width='1'/>" &
-    "<polyline points='" & PuntosSVG & "' fill='none' stroke='#006241' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>" &
-    "<text x='15' y='101' font-size='10' fill='#6B7770'>S" & FORMAT ( MINX ( Tendencia, 'FHW_Modelo'[SemanaID] ), "0" ) & "</text>" &
-    "<text x='285' y='101' text-anchor='end' font-size='10' fill='#6B7770'>S" & FORMAT ( SemanaActual, "0" ) & "</text></svg></div>" &
+    "<polyline points='" & PuntosSVG & "' fill='none' stroke='#006241' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>" & MarcadoresSVG &
+    "</svg></div>" &
     "<div style='flex:1;min-width:210px;background:#E8F1ED;border-radius:13px;padding:15px'>" &
     "<div style='font-size:10px;letter-spacing:1px;color:#006241'>VOLUMEN</div>" &
     "<div style='margin-top:13px'><div style='font-size:11px;color:#6B7770'>FHW</div><div style='font-size:22px;font-weight:700'>" & FORMAT ( FHWValor, "#,0" ) & "</div></div>" &
