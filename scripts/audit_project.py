@@ -101,6 +101,23 @@ def main() -> int:
     if pages.is_file():
         pages_html = pages.read_text(encoding="utf-8")
         check("GitHub Pages relative assets", '="/assets/' not in pages_html)
+    dist_assets = ROOT / "dist/client/assets"
+    docs_assets = ROOT / "docs/assets"
+    expected_assets = {
+        item.relative_to(dist_assets)
+        for item in dist_assets.rglob("*")
+        if item.is_file()
+    } if dist_assets.is_dir() else set()
+    published_assets = {
+        item.relative_to(docs_assets)
+        for item in docs_assets.rglob("*")
+        if item.is_file()
+    } if docs_assets.is_dir() else set()
+    check(
+        "GitHub Pages without obsolete assets",
+        bool(expected_assets) and published_assets == expected_assets,
+        f"esperados={len(expected_assets)}, publicados={len(published_assets)}",
+    )
     oversize_files, folder_violations = [], []
     folders = [ROOT] + [item for item in ROOT.rglob("*") if item.is_dir() and not any(part in EXCLUDED for part in item.relative_to(ROOT).parts)]
     for folder in folders:
@@ -123,8 +140,8 @@ def main() -> int:
     historical_weeks = payload["meta"].get("historicalWeeks", [])
     check("Historical engine range", historical_weeks == list(range(1, 35)), str(historical_weeks))
     improvement(4, "Histórico seguro", len(average_rollups) == 34 and all(0 <= item["ratio"] <= 1 for item in average_rollups), "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años.")
-    improvement(5, "Filtros rápidos", "function MultiSelect" in dashboard_source and 'label="Mes"' in dashboard_source and 'label="Semana"' in dashboard_source and "Aplicar y cerrar" in dashboard_source, "Mes y Semana usan selección múltiple compacta; Región y DM permanecen simples.")
-    improvement(6, "Interfaz simplificada", "Histórico</button>" not in dashboard_source and "Ponderado</button>" not in dashboard_source and "Vajilla reutilizable" not in dashboard_source, "Oculta términos técnicos y deja sólo Semana o Mes.")
+    improvement(5, "Alcance directo", "function MultiSelect" not in dashboard_source and 'className="period-filters"' not in dashboard_source and "Aplicar y cerrar" not in dashboard_source and "store-search" in dashboard_source, "El tablero elimina filtros redundantes de Mes y Semana; Región, DM y Tienda concentran el análisis.")
+    improvement(6, "Interfaz simplificada", "source-status" not in dashboard_source and "Ver fuentes" not in dashboard_source and "Revisar cruces" not in dashboard_source, "Oculta el estado técnico de carga y deja la lectura ejecutiva del desempeño.")
     improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "function list" in pdf_source and "columns=items.length>7?2:1" in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas.")
     improvement(8, "Exportación directa", "ExportDialog" in dashboard_source and "downloadDashboardPdf" in dashboard_source and "window.print" not in dashboard_source and "Guardar PDF" not in dashboard_source and "application/pdf" in pdf_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal y Excel XLSX se descargan directo; al finalizar sólo queda Cerrar.")
     improvement(9, "Responsive y PWA", (ROOT / "public/manifest.webmanifest").is_file() and (ROOT / "public/sw.js").is_file() and "safe-area-inset" in (ROOT / "app/mobile.css").read_text(encoding="utf-8"), "Navegación táctil y área segura para iOS/Android.")
