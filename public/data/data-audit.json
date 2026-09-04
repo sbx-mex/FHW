@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-08-31T16:05:19.313321+00:00",
+  "generatedAt": "2026-09-04T17:18:47.661008+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 35,
@@ -12,16 +12,16 @@
       "validKeys": 865,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "5763c44d69529ac368c077b1a36d4eb109af12e30410a0aad61cdb0e800d93f2"
+      "sha256": "4794edb14007015cba0f2e1995dc0917bc6aeaea90ba46d60de60421a0ee8694"
     },
     "lobby": {
       "file": "CTC_Bebidas_Lobby.csv",
       "headerRow": 11,
-      "rows": 943,
-      "validKeys": 943,
+      "rows": 942,
+      "validKeys": 942,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "2c712c3c46519e95cc07acc75c20505727a389a717090abad776bee464233fd0"
+      "sha256": "808b5d497d4866fee2d063a7be1e916f6f8dfcee2a56e5ea0027da0d391c1613"
     },
     "historicalFhw": {
       "file": "CTC_FHW_1_34.csv",
@@ -55,7 +55,7 @@
   },
   "joins": {
     "liveKeysFhw": 865,
-    "liveKeysLobby": 943,
+    "liveKeysLobby": 942,
     "intersectedKeys": 865,
     "historicalIntersectedKeys": 30109,
     "publishedLiveRows": 824,
@@ -65,10 +65,10 @@
   },
   "latest": {
     "stores": 824,
-    "fhw": 144442.0,
-    "lobby": 4835076.0,
-    "averageRatio": 0.03287491,
-    "storesAtTarget": 9
+    "fhw": 144514.0,
+    "lobby": 1865041.0,
+    "averageRatio": 0.08336677,
+    "storesAtTarget": 250
   },
   "quality": {
     "status": "ok",
@@ -85,11 +85,11 @@
         "week": 35,
         "status": "ready",
         "fhwStores": 865,
-        "lobbyStores": 943,
+        "lobbyStores": 942,
         "matchedStores": 865,
         "onlyFhw": 0,
-        "onlyLobby": 78,
-        "matchRate": 0.91728526
+        "onlyLobby": 77,
+        "matchRate": 0.91825902
       }
     ]
   },
@@ -97,13 +97,13 @@
     {
       "week": 35,
       "month": "Sep",
-      "fhw": 144442.0,
-      "lobby": 4835076.0,
-      "ratio": 0.03287491,
+      "fhw": 144514.0,
+      "lobby": 1865041.0,
+      "ratio": 0.08336677,
       "stores": 824,
-      "aboveTarget": 9,
-      "nearTarget": 29,
-      "opportunity": 786
+      "aboveTarget": 250,
+      "nearTarget": 114,
+      "opportunity": 460
     }
   ],
   "exampleLatest": {
@@ -115,8 +115,8 @@
     "dm": "Guadalupe Ibarra Martínez",
     "region": "Centro Centro",
     "fhw": 185.0,
-    "lobby": 4665.0,
-    "ratio": 0.03965702,
+    "lobby": 2974.0,
+    "ratio": 0.06220578,
     "source": "calculado"
   }
 }
