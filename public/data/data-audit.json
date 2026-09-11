@@ -1,9 +1,16 @@
 {
   "status": "ok",
-  "generatedAt": "2026-09-10T21:58:10.389966+00:00",
+  "generatedAt": "2026-09-11T14:02:42.454532+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 36,
+  "latestAvailableWeek": 37,
+  "partialWeeks": [
+    37
+  ],
+  "sourceUpdatedAt": "2026-09-10T15:57:16-06:00",
+  "dataThroughDate": "2026-09-09",
+  "cutoffPolicy": "Día vencido: la fecha de corte es el último día incluido en los CSV.",
   "sources": {
     "fhw": {
       "file": "CTC_FHW.csv",
@@ -58,9 +65,9 @@
     "liveKeysLobby": 2827,
     "intersectedKeys": 2564,
     "historicalIntersectedKeys": 30109,
-    "publishedLiveRows": 1639,
+    "publishedLiveRows": 2446,
     "publishedHistoricalRows": 28949,
-    "excludedNoApplicableDirectory": 1235,
+    "excludedNoApplicableDirectory": 1271,
     "zeroDenominator": 0
   },
   "latest": {
@@ -70,6 +77,12 @@
     "averageRatio": 0.08467907,
     "storesAtTarget": 255
   },
+  "latestAvailable": {
+    "stores": 807,
+    "averageRatio": 0.11716202,
+    "storesAtTarget": 433,
+    "isPartial": true
+  },
   "quality": {
     "status": "ok",
     "sourceDuplicatesConsolidated": 0,
@@ -77,11 +90,12 @@
     "zeroDenominatorRows": 0,
     "extremeRatiosFlagged": 7,
     "outOfRangeRatiosExcluded": 7,
-    "lowVolumeRowsFlagged": 7,
-    "latestCoverage": 0.9167604,
-    "pendingWeeks": [
+    "lowVolumeRowsFlagged": 8,
+    "latestCoverage": 0.90776153,
+    "partialWeeks": [
       37
     ],
+    "pendingWeeks": [],
     "synchronization": [
       {
         "week": 35,
@@ -105,7 +119,7 @@
       },
       {
         "week": 37,
-        "status": "pending",
+        "status": "partial",
         "fhwStores": 844,
         "lobbyStores": 941,
         "matchedStores": 843,
@@ -125,7 +139,8 @@
       "stores": 824,
       "aboveTarget": 250,
       "nearTarget": 114,
-      "opportunity": 460
+      "opportunity": 460,
+      "isPartial": false
     },
     {
       "week": 36,
@@ -136,7 +151,20 @@
       "stores": 815,
       "aboveTarget": 255,
       "nearTarget": 104,
-      "opportunity": 456
+      "opportunity": 456,
+      "isPartial": false
+    },
+    {
+      "week": 37,
+      "month": "Sep",
+      "fhw": 80083.0,
+      "lobby": 729642.0,
+      "ratio": 0.11716202,
+      "stores": 807,
+      "aboveTarget": 433,
+      "nearTarget": 81,
+      "opportunity": 293,
+      "isPartial": true
     }
   ],
   "exampleLatest": {
