@@ -33,7 +33,7 @@ function list(report:DashboardExport,x:number,y:number,width:number,height:numbe
 }
 
 function createPdf(report:DashboardExport){
-  const sorted=[...report.results].sort((a,b)=>b.ratio-a.ratio),leader=sorted[0],focus=sorted.at(-1),movement=report.movement===null?"—":`${report.movement>=0?"+":""}${pct(report.movement)}`;
+  const sorted=[...report.results].sort((a,b)=>b.ratio-a.ratio),leader=sorted[0],focus=sorted.at(-1),movement=report.movement===null?"—":`${report.movement>=0?"+":""}${(report.movement*100).toFixed(1)} pp`;
   const content=[
     "q\n",rect(0,555,W,40,GREEN),text(30,570,16,"FHW",true,"1 1 1"),text(72,570,8,"CADA TAZA CUENTA",true,"1 1 1"),
     text(30,525,8,report.scope.toUpperCase(),true,GREEN),text(30,495,27,"Cada Taza Cuenta",true,INK),text(30,476,10,report.period,false,MUTED),
