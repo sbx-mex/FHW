@@ -31,10 +31,12 @@ class PipelineTests(unittest.TestCase):
             self.assertIsNone(row)
 
     def test_latest_complete_week(self):
-        ready = self.payload["meta"]["updateState"]["readyWeeks"]
+        state = self.payload["meta"]["updateState"]
+        ready = state["readyWeeks"]
         self.assertEqual(self.audit["latestCompleteWeek"], max(ready, default=0))
-        live_weeks = {row["week"] for row in self.records if row["source"] == "calculado"}
-        self.assertEqual(live_weeks, set(ready))
+        live_weeks = {row["week"] for row in self.records if row["source"] in {"calculado", "parcial calculado"}}
+        self.assertEqual(live_weeks, set(ready + state["partialWeeks"]))
+        self.assertEqual(self.payload["meta"]["latestAvailableWeek"], max(live_weeks, default=0))
 
     def test_latest_ratio_is_average_of_store_percentages(self):
         latest = self.audit["latestCompleteWeek"]
@@ -56,7 +58,7 @@ class PipelineTests(unittest.TestCase):
         main_file = ROOT / "public/data/fhw-dashboard.json"
         self.assertLess(main_file.stat().st_size, 2 * 1024 * 1024)
         self.assertTrue(self.payload["meta"]["historyFiles"])
-        self.assertTrue(all(row["source"] == "calculado" for row in self.payload["records"]))
+        self.assertTrue(all(row["source"].endswith("calculado") for row in self.payload["records"]))
 
     def test_operational_hierarchy_covers_every_record(self):
         organization = self.payload["meta"]["organization"]
@@ -110,7 +112,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(quality["status"], "ok")
         self.assertEqual(quality["invalidSourceRows"], 0)
         self.assertEqual(quality["zeroDenominatorRows"], 0)
-        self.assertAlmostEqual(quality["latestCoverage"], self.audit["latest"]["stores"] / self.payload["meta"]["organization"]["stores"], places=8)
+        self.assertAlmostEqual(quality["latestCoverage"], self.audit["latestAvailable"]["stores"] / self.payload["meta"]["organization"]["stores"], places=8)
 
     def test_all_eleven_regions_are_available(self):
         organization = self.payload["meta"]["organization"]
@@ -146,11 +148,21 @@ class PipelineTests(unittest.TestCase):
 
     def test_future_week_waits_for_both_sources(self):
         state = self.payload["meta"]["updateState"]
-        self.assertTrue(all(week >= build_data.LIVE_START_WEEK for week in state["readyWeeks"] + state["pendingWeeks"]))
+        self.assertTrue(all(week >= build_data.LIVE_START_WEEK for week in state["readyWeeks"] + state["partialWeeks"] + state["pendingWeeks"]))
         for week in state["pendingWeeks"]:
-            self.assertFalse(any(row["week"] == week and row["source"] == "calculado" for row in self.records))
+            self.assertFalse(any(row["week"] == week and row["source"].endswith("calculado") for row in self.records))
         ready = [item for item in state["synchronization"] if item["status"] == "ready"]
+        partial = [item for item in state["synchronization"] if item["status"] == "partial"]
         self.assertTrue(all(item["matchRate"] >= build_data.MIN_SYNC_RATE for item in ready))
+        self.assertTrue(all(build_data.MIN_PARTIAL_SYNC_RATE <= item["matchRate"] < build_data.MIN_SYNC_RATE for item in partial))
+        self.assertTrue(all(any(row["week"] == item["week"] and row["source"] == "parcial calculado" for row in self.records) for item in partial))
+
+    def test_default_window_and_day_old_cutoff(self):
+        meta = self.payload["meta"]
+        self.assertEqual(meta["defaultWeeks"], meta["weeks"][-4:])
+        self.assertLess(meta["dataThroughDate"], meta["sourceUpdatedAt"][:10])
+        self.assertEqual(meta["latestAvailableWeek"], max(meta["publishedWeeks"], default=0))
+        self.assertTrue(set(meta["partialWeeks"]).issubset(meta["publishedWeeks"]))
 
     def test_historical_percentages_never_exceed_one_hundred(self):
         historical = [row for row in self.records if row["source"].startswith("histórico")]
@@ -159,7 +171,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_historical_and_live_ranges_never_overlap(self):
         historical = [row for row in self.records if row["source"] == "histórico calculado"]
-        live = [row for row in self.records if row["source"] == "calculado"]
+        live = [row for row in self.records if row["source"] in {"calculado", "parcial calculado"}]
         self.assertTrue(historical)
         self.assertTrue(all(1 <= row["week"] <= build_data.HISTORICAL_END_WEEK for row in historical))
         self.assertTrue(all(row["week"] >= build_data.LIVE_START_WEEK for row in live))

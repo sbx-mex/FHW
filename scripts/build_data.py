@@ -13,9 +13,10 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import unicodedata
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -27,6 +28,7 @@ INPUT = ROOT / "input"
 OUTPUT = ROOT / "public" / "data"
 TARGET = 0.10
 MIN_SYNC_RATE = 0.90
+MIN_PARTIAL_SYNC_RATE = 0.85
 HISTORICAL_END_WEEK = 34
 LIVE_START_WEEK = HISTORICAL_END_WEEK + 1
 MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
@@ -107,6 +109,52 @@ def decoded_lines(path: Path) -> list[str]:
     head = path.read_bytes()[:4]
     encoding = "utf-16" if head.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-8-sig"
     return path.read_text(encoding=encoding).splitlines()
+
+
+def report_dates(path: Path) -> list[date]:
+    """Lee las fechas visibles del encabezado del exporte, sin tocar las filas."""
+    result: list[date] = []
+    for line in decoded_lines(path)[:30]:
+        for month, day, year in re.findall(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", line):
+            try:
+                result.append(date(int(year), int(month), int(day)))
+            except ValueError:
+                continue
+    return result
+
+
+def last_source_commit(paths: Iterable[Path]) -> datetime | None:
+    """Obtiene la fecha reproducible de la última carga de los CSV en Git."""
+    timestamps: list[datetime] = []
+    for path in paths:
+        try:
+            completed = subprocess.run(
+                ["git", "log", "-1", "--format=%cI", "--", str(path.relative_to(ROOT))],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            if completed.stdout.strip():
+                timestamps.append(datetime.fromisoformat(completed.stdout.strip().replace("Z", "+00:00")))
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            continue
+    return max(timestamps) if timestamps else None
+
+
+def cut_metadata(paths: Iterable[Path]) -> dict[str, str]:
+    """Modela el corte a día vencido usando la carga y el rango declarado en los CSV."""
+    source_paths = list(paths)
+    source_updated = last_source_commit(source_paths)
+    dates = [item for path in source_paths for item in report_dates(path)]
+    data_through = max(dates) if dates else ((source_updated.date() - timedelta(days=1)) if source_updated else date.today() - timedelta(days=1))
+    if source_updated is None:
+        source_updated = datetime.combine(data_through + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
+    return {
+        "sourceUpdatedAt": source_updated.isoformat(),
+        "dataThroughDate": data_through.isoformat(),
+        "cutoffPolicy": "Día vencido: la fecha de corte es el último día incluido en los CSV.",
+    }
 
 
 def report_rows(path: Path, required: Iterable[str]) -> tuple[list[dict[str, str]], int]:
@@ -292,6 +340,7 @@ def build() -> dict[str, Any]:
 
     fhw, fhw_audit = aggregate_report(fhw_path, ("Cantidad Ajustada", "FHW"))
     lobby, lobby_audit = aggregate_report(lobby_path, ("Unidades", "Bebidas Lobby"))
+    source_cut = cut_metadata((fhw_path, lobby_path))
     historical_fhw, historical_fhw_audit = aggregate_report(historical_fhw_path, ("Cantidad Ajustada", "FHW"))
     historical_lobby, historical_lobby_audit = aggregate_report(historical_lobby_path, ("Unidades", "Bebidas Lobby"))
     directory, week_month, reference_audit = load_reference(reference_path)
@@ -321,33 +370,37 @@ def build() -> dict[str, Any]:
 
     def synchronize(
         numerator: dict[tuple[str, int, int], float], denominator: dict[tuple[str, int, int], float], *, strict: bool
-    ) -> tuple[list[int], list[int], list[dict[str, Any]]]:
+    ) -> tuple[list[int], list[int], list[int], list[dict[str, Any]]]:
         weeks = sorted({week for _, _, week in set(numerator) | set(denominator)})
-        ready, pending, result = [], [], []
+        ready, partial, pending, result = [], [], [], []
         for item_week in weeks:
             fhw_codes = {code for code, _, week in numerator if week == item_week}
             lobby_codes = {code for code, _, week in denominator if week == item_week}
             matched_codes = fhw_codes & lobby_codes
             sync_rate = len(matched_codes) / max(len(fhw_codes), len(lobby_codes), 1)
             ready_week = bool(fhw_codes) and bool(lobby_codes) and sync_rate >= MIN_SYNC_RATE
+            partial_week = bool(fhw_codes) and bool(lobby_codes) and MIN_PARTIAL_SYNC_RATE <= sync_rate < MIN_SYNC_RATE
             if strict and not ready_week:
                 raise ValueError(
                     f"Semana {item_week} fuera de congruencia: "
                     f"FHW={len(fhw_codes)}, Lobby={len(lobby_codes)}, coincidencias={len(matched_codes)}"
                 )
-            (ready if ready_week else pending).append(item_week)
+            status = "ready" if ready_week else "partial" if partial_week else "pending"
+            (ready if ready_week else partial if partial_week else pending).append(item_week)
             result.append({
-                "week": item_week, "status": "ready" if ready_week else "pending",
+                "week": item_week, "status": status,
                 "fhwStores": len(fhw_codes), "lobbyStores": len(lobby_codes),
                 "matchedStores": len(matched_codes), "onlyFhw": len(fhw_codes - lobby_codes),
                 "onlyLobby": len(lobby_codes - fhw_codes), "matchRate": round(sync_rate, 8),
             })
-        return ready, pending, result
+        return ready, partial, pending, result
 
     def records_from(
-        numerator: dict[tuple[str, int, int], float], denominator: dict[tuple[str, int, int], float], ready: list[int], source: str
+        numerator: dict[tuple[str, int, int], float], denominator: dict[tuple[str, int, int], float], ready: list[int], source: str,
+        partial: Iterable[int] = (),
     ) -> tuple[list[dict[str, Any]], int, int, int]:
         records: list[dict[str, Any]] = []
+        partial_weeks = set(partial)
         excluded = zeroes = out_of_range = 0
         keys = sorted((set(numerator) & set(denominator)) & {item for item in set(numerator) | set(denominator) if item[2] in ready}, key=lambda item: (item[2], int(item[0])))
         for code, year, week in keys:
@@ -368,7 +421,7 @@ def build() -> dict[str, Any]:
                 "year": year, "week": week, "month": week_month.get(week, month_fallback(week)),
                 "ceco": code, "store": meta["store"], "dm": meta["dm"], "region": meta["region"],
                 "fhw": round(fhw_value, 6), "lobby": round(lobby_value, 6),
-                "ratio": round(ratio, 8), "source": source,
+                "ratio": round(ratio, 8), "source": "parcial calculado" if week in partial_weeks else source,
             })
         return records, excluded, zeroes, out_of_range
 
@@ -376,10 +429,11 @@ def build() -> dict[str, Any]:
     historical_lobby = select_periods(historical_lobby, 1, HISTORICAL_END_WEEK)
     fhw = select_periods(fhw, LIVE_START_WEEK, None)
     lobby = select_periods(lobby, LIVE_START_WEEK, None)
-    historical_ready_weeks, _, historical_synchronization = synchronize(historical_fhw, historical_lobby, strict=True)
-    ready_weeks, pending_weeks, synchronization = synchronize(fhw, lobby, strict=False)
+    historical_ready_weeks, _, _, historical_synchronization = synchronize(historical_fhw, historical_lobby, strict=True)
+    ready_weeks, partial_weeks, pending_weeks, synchronization = synchronize(fhw, lobby, strict=False)
+    published_weeks = sorted(ready_weeks + partial_weeks)
     historical_records, historical_excluded, historical_zeroes, historical_out_of_range = records_from(historical_fhw, historical_lobby, historical_ready_weeks, "histórico calculado")
-    live_records, live_excluded, live_zeroes, live_out_of_range = records_from(fhw, lobby, ready_weeks, "calculado")
+    live_records, live_excluded, live_zeroes, live_out_of_range = records_from(fhw, lobby, published_weeks, "calculado", partial_weeks)
     excluded_no_directory = historical_excluded + live_excluded
     zero_denominator = historical_zeroes + live_zeroes
     out_of_range_ratios = historical_out_of_range + live_out_of_range
@@ -405,11 +459,13 @@ def build() -> dict[str, Any]:
                 "ratio": round(average_ratio(items), 8),
             })
     live_weeks = sorted({item["week"] for item in live_records})
-    latest_week = max(live_weeks) if live_weeks else 0
-    latest = [item for item in live_records if item["week"] == latest_week]
-    total_fhw = sum(item["fhw"] for item in latest)
-    total_lobby = sum(item["lobby"] for item in latest)
-    average_latest = average_ratio(latest)
+    latest_complete_week = max(ready_weeks) if ready_weeks else 0
+    latest_available_week = max(live_weeks) if live_weeks else 0
+    latest_complete = [item for item in live_records if item["week"] == latest_complete_week]
+    latest_available = [item for item in live_records if item["week"] == latest_available_week]
+    total_fhw = sum(item["fhw"] for item in latest_complete)
+    total_lobby = sum(item["lobby"] for item in latest_complete)
+    average_latest = average_ratio(latest_complete)
     coverage_by_week = []
     executive_weeks = []
     for item_week in live_weeks:
@@ -435,6 +491,7 @@ def build() -> dict[str, Any]:
             "aboveTarget": sum(1 for item in published if item["ratio"] > TARGET),
             "nearTarget": sum(1 for item in published if 0.08 <= item["ratio"] <= TARGET),
             "opportunity": sum(1 for item in published if item["ratio"] < 0.08),
+            "isPartial": item_week in partial_weeks,
         })
 
     source_audits = (fhw_audit, lobby_audit, historical_fhw_audit, historical_lobby_audit)
@@ -450,7 +507,8 @@ def build() -> dict[str, Any]:
         "extremeRatiosFlagged": extreme_ratios,
         "outOfRangeRatiosExcluded": out_of_range_ratios,
         "lowVolumeRowsFlagged": low_volume,
-        "latestCoverage": round(len(latest) / len(directory), 8) if directory else 0,
+        "latestCoverage": round(len(latest_available) / len(directory), 8) if directory else 0,
+        "partialWeeks": partial_weeks,
         "pendingWeeks": pending_weeks,
         "synchronization": synchronization,
     }
@@ -466,15 +524,16 @@ def build() -> dict[str, Any]:
     input_status = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "title": "Estado de fuentes FHW",
-        "policy": "Histórico: semanas 1–34. Operación: semana 35 en adelante. Cada semana operativa requiere 90% de coincidencia CeCo.",
+        "policy": "Histórico: semanas 1–34. Operación: semana 35 en adelante. ≥90% es cierre; 85–89.99% se publica como avance parcial.",
+        **source_cut,
         "historical": {
             "status": "ready" if historical_ready_weeks == list(range(1, HISTORICAL_END_WEEK + 1)) else "review",
             "weeks": historical_ready_weeks,
             "synchronization": historical_synchronization,
         },
         "operational": {
-            "status": "ready" if ready_weeks else "pending",
-            "readyWeeks": ready_weeks, "pendingWeeks": pending_weeks,
+            "status": "ready" if published_weeks else "pending",
+            "readyWeeks": ready_weeks, "partialWeeks": partial_weeks, "pendingWeeks": pending_weeks,
             "synchronization": synchronization,
         },
         "sources": [
@@ -517,13 +576,16 @@ def build() -> dict[str, Any]:
                 "stores": len({item["ceco"] for item in items}),
             })
 
-    example = next((item for item in latest if item["ceco"] == "38101"), latest[0] if latest else None)
+    example = next((item for item in latest_complete if item["ceco"] == "38101"), latest_complete[0] if latest_complete else None)
     audit = {
         "status": "ok",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "formula": "AVG(FHW / Bebidas Lobby) por tienda",
         "target": TARGET,
-        "latestCompleteWeek": latest_week,
+        "latestCompleteWeek": latest_complete_week,
+        "latestAvailableWeek": latest_available_week,
+        "partialWeeks": partial_weeks,
+        **source_cut,
         "sources": {
             "fhw": fhw_audit, "lobby": lobby_audit,
             "historicalFhw": historical_fhw_audit, "historicalLobby": historical_lobby_audit,
@@ -540,11 +602,17 @@ def build() -> dict[str, Any]:
             "zeroDenominator": zero_denominator,
         },
         "latest": {
-            "stores": len(latest),
+            "stores": len(latest_complete),
             "fhw": round(total_fhw, 6),
             "lobby": round(total_lobby, 6),
             "averageRatio": round(average_latest, 8),
-            "storesAtTarget": sum(1 for item in latest if item["ratio"] > TARGET),
+            "storesAtTarget": sum(1 for item in latest_complete if item["ratio"] > TARGET),
+        },
+        "latestAvailable": {
+            "stores": len(latest_available),
+            "averageRatio": round(average_ratio(latest_available), 8),
+            "storesAtTarget": sum(1 for item in latest_available if item["ratio"] > TARGET),
+            "isPartial": latest_available_week in partial_weeks,
         },
         "quality": quality,
         "executiveWeeks": executive_weeks,
@@ -553,10 +621,14 @@ def build() -> dict[str, Any]:
     payload = {
         "meta": {
             "title": "FHW · Cada Taza Cuenta",
-            "version": "1.8.0",
+            "version": "2.0.0",
             "generatedAt": audit["generatedAt"],
             "target": TARGET,
-            "latestCompleteWeek": latest_week,
+            "latestCompleteWeek": latest_complete_week,
+            "latestAvailableWeek": latest_available_week,
+            "partialWeeks": partial_weeks,
+            "defaultWeeks": sorted({item["week"] for item in all_records})[-4:],
+            **source_cut,
             "formula": audit["formula"],
             "weeks": sorted({item["week"] for item in all_records}),
             "months": [month for month in MONTHS if month in {item["month"] for item in all_records}],
@@ -567,17 +639,20 @@ def build() -> dict[str, Any]:
             "historyFiles": {},
             "inputStatusFile": "data/input-status.json",
             "pendingReviewFile": "data/revision/pending-weeks.json",
-            "weeksWithSynchronizedInputs": live_weeks,
+            "weeksWithSynchronizedInputs": ready_weeks,
+            "publishedWeeks": published_weeks,
             "historyPolicy": "Semanas 1-34 y 35+ calculan FHW / Bebidas Lobby por tienda; todos los alcances muestran el promedio de porcentajes válidos.",
             "historicalWeeks": historical_ready_weeks,
             "updateState": {
-                "readyWeeks": live_weeks,
+                "readyWeeks": ready_weeks,
+                "partialWeeks": partial_weeks,
                 "pendingWeeks": pending_weeks,
-                "latestReadyWeek": latest_week,
+                "latestReadyWeek": latest_complete_week,
+                "latestAvailableWeek": latest_available_week,
                 "synchronization": synchronization,
             },
             "historicalSynchronization": historical_synchronization,
-            "latestStores": len(latest),
+            "latestStores": len(latest_available),
             "organization": {
                 "regions": len(hierarchy),
                 "dms": len({item["dm"] for item in directory.values()}),

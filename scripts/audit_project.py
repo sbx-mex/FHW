@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from build_data import HISTORICAL_END_WEEK
+from build_data import HISTORICAL_END_WEEK, MIN_PARTIAL_SYNC_RATE, MIN_SYNC_RATE
 
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED = {"node_modules", ".git", ".sites-runtime", ".next", "dist", "outputs", "work"}
@@ -35,6 +35,7 @@ def main() -> int:
     check("Data status", audit.get("status") == "ok")
     update_state = payload.get("meta", {}).get("updateState", {})
     ready_weeks = update_state.get("readyWeeks", [])
+    partial_weeks = update_state.get("partialWeeks", [])
     pending_weeks = update_state.get("pendingWeeks", [])
     dynamic_latest = max(ready_weeks, default=0)
     check("Latest synchronized week", audit.get("latestCompleteWeek") == dynamic_latest, str(audit.get("latestCompleteWeek")))
@@ -74,7 +75,10 @@ def main() -> int:
     check("Python quality gate", quality.get("status") == "ok" and quality.get("invalidSourceRows") == 0 and quality.get("zeroDenominatorRows") == 0)
     synchronization = update_state.get("synchronization", [])
     check("Numerator denominator synchronized", bool(synchronization) and all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"))
-    check("Pending weeks are not published", not any(row["week"] in pending_weeks and row["source"] == "calculado" for row in records), str(pending_weeks))
+    check("Pending weeks are not published", not any(row["week"] in pending_weeks and row["source"].endswith("calculado") for row in records), str(pending_weeks))
+    check("Partial weeks are labeled", all(any(row["week"] == week and row["source"] == "parcial calculado" for row in records) for week in partial_weeks), str(partial_weeks))
+    check("Default four-week window", payload["meta"].get("defaultWeeks") == payload["meta"].get("weeks", [])[-4:])
+    check("Day-old cutoff", bool(payload["meta"].get("dataThroughDate")) and payload["meta"].get("dataThroughDate") < payload["meta"].get("sourceUpdatedAt", "")[:10])
     check("Performance bands reconcile", (bool(latest_summary) and latest_summary.get("aboveTarget", 0) + latest_summary.get("nearTarget", 0) + latest_summary.get("opportunity", 0) == latest_summary.get("stores", -1)) or audit["latestCompleteWeek"] == 0)
     check("Eleven regions", payload["meta"]["organization"]["regions"] == 11, str(payload["meta"]["organization"]["regions"]))
     rollups = payload["meta"].get("weeklyRollups", {})
@@ -137,13 +141,13 @@ def main() -> int:
         improvements.append({"number": number, "name": name, "status": "ok" if condition else "error", "detail": detail})
     average_rollups = payload["meta"].get("averageRollups", {}).get("national", [])
     improvement(1, "Promedio correcto", audit.get("formula") == "AVG(FHW / Bebidas Lobby) por tienda", "Calcula cada tienda y después promedia; no suma porcentajes ni divide totales.")
-    improvement(2, "Cruce sincronizado", all(item["matchRate"] >= .90 for item in synchronization if item["status"] == "ready"), "El mismo CeCo y semana debe existir en numerador y denominador.")
-    improvement(3, "Semanas futuras automáticas", dynamic_latest == payload["meta"]["latestCompleteWeek"] and not any(row["week"] in pending_weeks and row["source"] == "calculado" for row in records), "Detecta semanas posteriores y deja pendientes las fuentes incompletas cuando existan, sin exigir una semana pendiente para validar el corte vigente.")
+    improvement(2, "Cruce sincronizado", all(item["matchRate"] >= MIN_SYNC_RATE for item in synchronization if item["status"] == "ready") and all(MIN_PARTIAL_SYNC_RATE <= item["matchRate"] < MIN_SYNC_RATE for item in synchronization if item["status"] == "partial"), "El mismo CeCo y semana debe existir en numerador y denominador; el avance parcial se identifica sin confundirlo con un cierre.")
+    improvement(3, "Semana vigente automática", dynamic_latest == payload["meta"]["latestCompleteWeek"] and payload["meta"].get("latestAvailableWeek") == max(ready_weeks + partial_weeks, default=0) and not any(row["week"] in pending_weeks and row["source"].endswith("calculado") for row in records), "Publica la semana vigente cuando ambos CSV permiten una lectura parcial y conserva por separado el último cierre validado.")
     historical_weeks = payload["meta"].get("historicalWeeks", [])
     historical_average_rollups = [item for item in average_rollups if item["week"] <= HISTORICAL_END_WEEK]
     check("Historical engine range", historical_weeks == list(range(1, HISTORICAL_END_WEEK + 1)), str(historical_weeks))
     improvement(4, "Histórico seguro", len(historical_average_rollups) == HISTORICAL_END_WEEK and all(0 <= item["ratio"] <= 1 for item in historical_average_rollups), "Semanas 1–34 se calculan con FHW / Bebidas Lobby por tienda, sin mezclar años; las semanas vigentes posteriores se auditan por separado.")
-    improvement(5, "Filtros de periodo", 'className="period-filter"' in dashboard_source and 'className="multi-select"' in dashboard_source and "Todas las semanas" in dashboard_source and "store-search" in dashboard_source, "Mes y Semana permiten selección múltiple para acotar la revisión; Región, DM y Tienda conservan su navegación directa.")
+    improvement(5, "Filtros de periodo", 'className="period-filter"' in dashboard_source and 'className="multi-select"' in dashboard_source and "Últimas 4 semanas" in dashboard_source and "store-search" in dashboard_source, "Mes y Semana permiten selección múltiple y la lectura abre en las cuatro semanas más recientes; Región, DM y Tienda conservan su navegación directa.")
     improvement(6, "Interfaz simplificada", "source-status" not in dashboard_source and "Ver fuentes" not in dashboard_source and "Revisar cruces" not in dashboard_source, "Oculta el estado técnico de carga y deja la lectura ejecutiva del desempeño.")
     improvement(7, "Listado por alcance", "downloadDashboardPdf" in dashboard_source and "rankingLimit" in dashboard_source and "function list" in pdf_source and "columns=items.length>7?2:1" in pdf_source, "El PDF muestra la tendencia y el listado completo del alcance en una o dos columnas: 11 regiones, todos los DMs o todas las tiendas.")
     improvement(8, "Exportación directa", "ExportDialog" in dashboard_source and "downloadDashboardPdf" in dashboard_source and "window.print" not in dashboard_source and "Guardar PDF" not in dashboard_source and "application/pdf" in pdf_source and "Excel | Dash" in dashboard_source and "buildTrend" in (ROOT / "app/xlsx-report.ts").read_text(encoding="utf-8") and "function exportCsv" not in dashboard_source, "PDF horizontal y Excel XLSX se descargan directo; al finalizar sólo queda Cerrar.")
