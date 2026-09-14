@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "generatedAt": "2026-09-11T14:02:42.454532+00:00",
+  "generatedAt": "2026-09-14T16:29:17.579306+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 36,
@@ -51,12 +51,12 @@
     "reference": {
       "file": "Directorio_FHW.xlsx",
       "sheet": "Hoja1",
-      "includedStores": 889,
-      "excludedStores": 70,
+      "includedStores": 872,
+      "excludedStores": 87,
       "applyRule": "Aplica = Sí",
       "applyColumnPresent": true,
       "calendarWeeks": 52,
-      "sha256": "61d4fcfbdb2e11a2aa1dafa458fc2fea194edd0bad5f941c5a1d0987b46f5044",
+      "sha256": "7c82ca52e47d9efa47881e331b555698ac9c3cd7f462587675f55a002146a38d",
       "calendarSource": "Base_Año_Mes_Sem.xlsx"
     }
   },
@@ -65,22 +65,22 @@
     "liveKeysLobby": 2827,
     "intersectedKeys": 2564,
     "historicalIntersectedKeys": 30109,
-    "publishedLiveRows": 2446,
-    "publishedHistoricalRows": 28949,
-    "excludedNoApplicableDirectory": 1271,
+    "publishedLiveRows": 2418,
+    "publishedHistoricalRows": 28606,
+    "excludedNoApplicableDirectory": 1642,
     "zeroDenominator": 0
   },
   "latest": {
-    "stores": 815,
-    "fhw": 147580.0,
-    "lobby": 1850014.0,
-    "averageRatio": 0.08467907,
-    "storesAtTarget": 255
+    "stores": 806,
+    "fhw": 147521.0,
+    "lobby": 1830284.0,
+    "averageRatio": 0.08548583,
+    "storesAtTarget": 256
   },
   "latestAvailable": {
-    "stores": 807,
-    "averageRatio": 0.11716202,
-    "storesAtTarget": 433,
+    "stores": 798,
+    "averageRatio": 0.11819599,
+    "storesAtTarget": 434,
     "isPartial": true
   },
   "quality": {
@@ -91,7 +91,7 @@
     "extremeRatiosFlagged": 7,
     "outOfRangeRatiosExcluded": 7,
     "lowVolumeRowsFlagged": 8,
-    "latestCoverage": 0.90776153,
+    "latestCoverage": 0.91513761,
     "partialWeeks": [
       37
     ],
@@ -133,37 +133,37 @@
     {
       "week": 35,
       "month": "Sep",
-      "fhw": 144501.0,
-      "lobby": 1865041.0,
-      "ratio": 0.08335798,
-      "stores": 824,
-      "aboveTarget": 250,
+      "fhw": 144376.0,
+      "lobby": 1845759.0,
+      "ratio": 0.0842029,
+      "stores": 814,
+      "aboveTarget": 251,
       "nearTarget": 114,
-      "opportunity": 460,
+      "opportunity": 449,
       "isPartial": false
     },
     {
       "week": 36,
       "month": "Sep",
-      "fhw": 147580.0,
-      "lobby": 1850014.0,
-      "ratio": 0.08467907,
-      "stores": 815,
-      "aboveTarget": 255,
+      "fhw": 147521.0,
+      "lobby": 1830284.0,
+      "ratio": 0.08548583,
+      "stores": 806,
+      "aboveTarget": 256,
       "nearTarget": 104,
-      "opportunity": 456,
+      "opportunity": 446,
       "isPartial": false
     },
     {
       "week": 37,
       "month": "Sep",
-      "fhw": 80083.0,
-      "lobby": 729642.0,
-      "ratio": 0.11716202,
-      "stores": 807,
-      "aboveTarget": 433,
-      "nearTarget": 81,
-      "opportunity": 293,
+      "fhw": 79996.0,
+      "lobby": 721186.0,
+      "ratio": 0.11819599,
+      "stores": 798,
+      "aboveTarget": 434,
+      "nearTarget": 79,
+      "opportunity": 285,
       "isPartial": true
     }
   ],
