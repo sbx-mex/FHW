@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-14T16:29:17.573661+00:00",
+  "generatedAt": "2026-09-14T16:36:10.943923+00:00",
   "title": "Estado de fuentes FHW",
   "policy": "Histórico: semanas 1–34. Operación: semana 35 en adelante. ≥90% es cierre; 85–89.99% se publica como avance parcial.",
-  "sourceUpdatedAt": "2026-09-10T15:57:16-06:00",
-  "dataThroughDate": "2026-09-09",
+  "sourceUpdatedAt": "2026-09-14T10:35:27-06:00",
+  "dataThroughDate": "2026-09-12",
   "cutoffPolicy": "Día vencido: la fecha de corte es el último día incluido en los CSV.",
   "historical": {
     "status": "ready",
@@ -390,11 +390,10 @@
     "status": "ready",
     "readyWeeks": [
       35,
-      36
-    ],
-    "partialWeeks": [
+      36,
       37
     ],
+    "partialWeeks": [],
     "pendingWeeks": [],
     "synchronization": [
       {
@@ -419,13 +418,13 @@
       },
       {
         "week": 37,
-        "status": "partial",
-        "fhwStores": 844,
-        "lobbyStores": 941,
-        "matchedStores": 843,
+        "status": "ready",
+        "fhwStores": 854,
+        "lobbyStores": 944,
+        "matchedStores": 853,
         "onlyFhw": 1,
-        "onlyLobby": 98,
-        "matchRate": 0.89585547
+        "onlyLobby": 91,
+        "matchRate": 0.90360169
       }
     ]
   },
@@ -527,30 +526,30 @@
       "file": "CTC_FHW.csv",
       "period": "S35+",
       "status": "ready",
-      "rows": 2565,
-      "validKeys": 2565,
+      "rows": 2575,
+      "validKeys": 2575,
       "weeks": [
         35,
         36,
         37
       ],
       "weekRange": "S35–S37",
-      "sha256": "c3c0b57439edc4e928c35da1ff8fd105dcf6ab51efa1dea550bbda02efd9c131"
+      "sha256": "c3b5fc81e9d994dcb8599c7a293559519e413d865dbee5b0d2f2bac7e7b1aecf"
     },
     {
       "name": "Bebidas Lobby operativo",
       "file": "CTC_Bebidas_Lobby.csv",
       "period": "S35+",
       "status": "ready",
-      "rows": 2827,
-      "validKeys": 2827,
+      "rows": 2830,
+      "validKeys": 2830,
       "weeks": [
         35,
         36,
         37
       ],
       "weekRange": "S35–S37",
-      "sha256": "bd11ac50ab0d74e8ee484f71bc31edcdfb5387c5d275c04b4c7570e4d0243d2e"
+      "sha256": "97c2fbb16a5ef6d8d8d92f51678439957ed403a7295973ddb0092a1ef10c84d6"
     }
   ]
 }
