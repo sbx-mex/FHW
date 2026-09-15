@@ -1,32 +1,34 @@
 {
   "status": "ok",
-  "generatedAt": "2026-09-14T16:36:10.948498+00:00",
+  "generatedAt": "2026-09-15T19:28:33.292612+00:00",
   "formula": "AVG(FHW / Bebidas Lobby) por tienda",
   "target": 0.1,
   "latestCompleteWeek": 37,
-  "latestAvailableWeek": 37,
-  "partialWeeks": [],
-  "sourceUpdatedAt": "2026-09-14T10:35:27-06:00",
-  "dataThroughDate": "2026-09-12",
+  "latestAvailableWeek": 38,
+  "partialWeeks": [
+    38
+  ],
+  "sourceUpdatedAt": "2026-09-15T13:27:50-06:00",
+  "dataThroughDate": "2026-09-14",
   "cutoffPolicy": "Día vencido: la fecha de corte es el último día incluido en los CSV.",
   "sources": {
     "fhw": {
       "file": "CTC_FHW.csv",
       "headerRow": 9,
-      "rows": 2575,
-      "validKeys": 2575,
+      "rows": 3393,
+      "validKeys": 3393,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "c3b5fc81e9d994dcb8599c7a293559519e413d865dbee5b0d2f2bac7e7b1aecf"
+      "sha256": "e897482a1142bb9d9e69b99c920a2ae1854255af908adb9e56a4dd3e67493c2f"
     },
     "lobby": {
       "file": "CTC_Bebidas_Lobby.csv",
       "headerRow": 11,
-      "rows": 2830,
-      "validKeys": 2830,
+      "rows": 3769,
+      "validKeys": 3769,
       "duplicatesConsolidated": 0,
       "invalidRows": 0,
-      "sha256": "97c2fbb16a5ef6d8d8d92f51678439957ed403a7295973ddb0092a1ef10c84d6"
+      "sha256": "76582fa8afe0e5a7e92fc4d76e926571632fee11436bfc21aac92737d1901df0"
     },
     "historicalFhw": {
       "file": "CTC_FHW_1_34.csv",
@@ -59,38 +61,40 @@
     }
   },
   "joins": {
-    "liveKeysFhw": 2575,
-    "liveKeysLobby": 2830,
-    "intersectedKeys": 2574,
+    "liveKeysFhw": 3393,
+    "liveKeysLobby": 3769,
+    "intersectedKeys": 3390,
     "historicalIntersectedKeys": 30109,
-    "publishedLiveRows": 2422,
+    "publishedLiveRows": 3209,
     "publishedHistoricalRows": 28606,
-    "excludedNoApplicableDirectory": 1647,
+    "excludedNoApplicableDirectory": 1677,
     "zeroDenominator": 0
   },
   "latest": {
-    "stores": 802,
-    "fhw": 149565.0,
-    "lobby": 1569636.0,
-    "averageRatio": 0.10123137,
-    "storesAtTarget": 335
+    "stores": 803,
+    "fhw": 149571.0,
+    "lobby": 1844650.0,
+    "averageRatio": 0.08603548,
+    "storesAtTarget": 255
   },
   "latestAvailable": {
-    "stores": 802,
-    "averageRatio": 0.10123137,
-    "storesAtTarget": 335,
-    "isPartial": false
+    "stores": 786,
+    "averageRatio": 0.10605006,
+    "storesAtTarget": 343,
+    "isPartial": true
   },
   "quality": {
     "status": "ok",
     "sourceDuplicatesConsolidated": 0,
     "invalidSourceRows": 0,
     "zeroDenominatorRows": 0,
-    "extremeRatiosFlagged": 8,
-    "outOfRangeRatiosExcluded": 8,
-    "lowVolumeRowsFlagged": 7,
-    "latestCoverage": 0.91972477,
-    "partialWeeks": [],
+    "extremeRatiosFlagged": 7,
+    "outOfRangeRatiosExcluded": 7,
+    "lowVolumeRowsFlagged": 29,
+    "latestCoverage": 0.90137615,
+    "partialWeeks": [
+      38
+    ],
     "pendingWeeks": [],
     "synchronization": [
       {
@@ -122,6 +126,16 @@
         "onlyFhw": 1,
         "onlyLobby": 91,
         "matchRate": 0.90360169
+      },
+      {
+        "week": 38,
+        "status": "partial",
+        "fhwStores": 818,
+        "lobbyStores": 939,
+        "matchedStores": 816,
+        "onlyFhw": 2,
+        "onlyLobby": 123,
+        "matchRate": 0.86900958
       }
     ]
   },
@@ -153,14 +167,26 @@
     {
       "week": 37,
       "month": "Sep",
-      "fhw": 149565.0,
-      "lobby": 1569636.0,
-      "ratio": 0.10123137,
-      "stores": 802,
-      "aboveTarget": 335,
-      "nearTarget": 116,
-      "opportunity": 351,
+      "fhw": 149571.0,
+      "lobby": 1844650.0,
+      "ratio": 0.08603548,
+      "stores": 803,
+      "aboveTarget": 255,
+      "nearTarget": 109,
+      "opportunity": 439,
       "isPartial": false
+    },
+    {
+      "week": 38,
+      "month": "Sep",
+      "fhw": 23150.0,
+      "lobby": 234563.0,
+      "ratio": 0.10605006,
+      "stores": 786,
+      "aboveTarget": 343,
+      "nearTarget": 91,
+      "opportunity": 352,
+      "isPartial": true
     }
   ],
   "exampleLatest": {
@@ -172,8 +198,8 @@
     "dm": "Guadalupe Ibarra Martínez",
     "region": "Centro Centro",
     "fhw": 256.0,
-    "lobby": 2302.0,
-    "ratio": 0.11120765,
+    "lobby": 2762.0,
+    "ratio": 0.09268646,
     "source": "calculado"
   }
 }
